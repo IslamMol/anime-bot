@@ -10,8 +10,9 @@ on:
         required: false
         default: "10"
 
+# write нужен, чтобы коммитить data/posted.json обратно (дедупликация)
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: anime-parser
@@ -34,6 +35,13 @@ jobs:
           BOT_USERNAME: ${{ secrets.BOT_USERNAME }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           WEBAPP_URL: ${{ secrets.WEBAPP_URL }}
-          DB_PATH: ./anime-telegram-bot/data/actions-bot.db
+          DB_PATH: ./data/actions-bot.db
         run: python -m src.parser --limit ${{ inputs.limit || 10 }}
         working-directory: anime-telegram-bot
+      - name: Commit posted.json back
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add anime-telegram-bot/data/posted.json
+          git diff --cached --quiet || git commit -m "chore: update posted.json [skip ci]"
+          git push

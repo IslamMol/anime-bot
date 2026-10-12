@@ -1,0 +1,9 @@
+[Unit]
+Description=Anime parser: post new releases to channel
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/anime-telegram-bot
+EnvironmentFile=/opt/anime-telegram-bot/.env
+ExecStart=/opt/anime-telegram-bot/.venv/bin/python -m src.parser --limit 10

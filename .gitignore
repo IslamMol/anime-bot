@@ -1,0 +1,18 @@
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Secrets — никогда не коммитить
+anime-telegram-bot/.env
+
+# Локальная база (избранное живет только на машине/раннере)
+# posted.json — исключение: журнал опубликованных постов, его Actions коммитит обратно
+anime-telegram-bot/data/*
+!anime-telegram-bot/data/posted.json
