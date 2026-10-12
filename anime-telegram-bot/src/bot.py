@@ -21,9 +21,9 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-from . import anilibria, animego, shikimori
-from .config import load_config
-from .db import add_fav, init_db, list_favs
+from . import anilibria, animego, shikimori, subs
+from .config import BASE_DIR, load_config
+from .db import add_fav, init_db, is_fav, list_favs, remove_fav
 
 router = Router()
 cfg = load_config()
@@ -88,7 +88,38 @@ def kb_search(results: list[dict]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def kb_card(release: dict, alt_url: str | None = None) -> InlineKeyboardMarkup:
+def _shiki_id(r: dict) -> str:
+    sh = r.get("shikimori") or {}
+    return str(sh.get("id") or f"rel:{r.get('id')}")
+
+
+def kb_search_grouped(groups: list[tuple[str, list[dict]]]) -> InlineKeyboardMarkup:
+    """Одна кнопка на тайтл; если релизов несколько — счетчик озвучек."""
+    rows = []
+    for _key, items in groups:
+        first = items[0]
+        year = f" ({first.get('year')})" if first.get("year") else ""
+        base = anilibria.title_of(first)[:32] + year
+        if len(items) == 1:
+            rows.append([InlineKeyboardButton(text=base, callback_data=f"lib:{first['id']}")])
+        else:
+            rows.append([InlineKeyboardButton(
+                text=f"{base} — {len(items)} озвучки",
+                callback_data=f"dubs:{first['id']}",
+            )])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def kb_dubs(items: list[tuple[dict, int]], back_rid: int) -> InlineKeyboardMarkup:
+    rows = []
+    for r, n in items:
+        label = f"{anilibria.title_of(r)[:28]} ({r.get('year', '?')}) • {n} сер."
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"lib:{r['id']}")])
+    rows.append([InlineKeyboardButton(text="◀ Назад к поиску", callback_data=f"q:{back_rid}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def kb_card(release: dict, alt_url: str | None = None, in_fav: bool = False) -> InlineKeyboardMarkup:
     rid = release["id"]
     url = watch_url_for(release, alt_url)
     rows: list[list[InlineKeyboardButton]] = []
@@ -108,26 +139,38 @@ def kb_card(release: dict, alt_url: str | None = None) -> InlineKeyboardMarkup:
         # Когда плеер есть — все серии и озвучки уже внутри, во вкладке «Все серии».
         if alt_url:
             rows.append([InlineKeyboardButton(text="🌐 Все серии + другие озвучки (AnimeGO)", url=alt_url)])
-    rows.append([InlineKeyboardButton(text="⭐ В избранное", callback_data=f"fav:{rid}")])
+    if in_fav:
+        rows.append([InlineKeyboardButton(text="💔 Убрать из избранного", callback_data=f"unfav:{rid}")])
+    else:
+        rows.append([InlineKeyboardButton(text="⭐ В избранное", callback_data=f"fav:{rid}")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def group_by_title(results: list[dict]) -> list[tuple[str, list[dict]]]:
+    groups: dict[str, list[dict]] = {}
+    for r in results:
+        groups.setdefault(_shiki_id(r), []).append(r)
+    return list(groups.items())
 
 
 async def do_search(msg: Message, query: str) -> None:
     try:
-        res = await anilibria.search_releases(query, limit=5)
+        res = await anilibria.search_releases(query, limit=8)
     except Exception:
         await msg.answer("Поиск временно недоступен, попробуй еще раз.", reply_markup=main_menu())
         return
     if not res:
         await msg.answer(f'По «{esc(query)}» ничего не нашел. Попробуй другое название.', reply_markup=main_menu())
         return
-    if len(res) == 1:
-        await send_card_by_libria(msg, res[0]["id"])
+    groups = group_by_title(res)
+    if len(groups) == 1 and len(groups[0][1]) == 1:
+        await send_card_by_libria(msg, res[0]["id"], msg.from_user.id)
         return
-    await msg.answer(f'По «{esc(query)}» нашел, выбери:', reply_markup=kb_search(res))
+    await msg.answer(f'По «{esc(query)}» нашел, выбери:', reply_markup=kb_search_grouped(groups))
 
 
-async def send_card_by_libria(msg: Message, release_id: int) -> None:
+async def send_card_by_libria(msg: Message, release_id: int, user_id: int | None = None) -> None:
+    uid = user_id if user_id is not None else (msg.from_user.id if msg.from_user and not msg.from_user.is_bot else 0)
     try:
         r = await anilibria.get_release(release_id)
     except Exception:
@@ -155,10 +198,14 @@ async def send_card_by_libria(msg: Message, release_id: int) -> None:
         except Exception:
             alt_url = None
     try:
+        in_fav = await is_fav(cfg.db_path, uid, release_id) if uid else False
+    except Exception:
+        in_fav = False
+    try:
         if img:
-            await msg.answer_photo(img, caption=caption[:1000], reply_markup=kb_card(r, alt_url))
+            await msg.answer_photo(img, caption=caption[:1000], reply_markup=kb_card(r, alt_url, in_fav))
         else:
-            await msg.answer(caption[:1000], reply_markup=kb_card(r, alt_url))
+            await msg.answer(caption[:1000], reply_markup=kb_card(r, alt_url, in_fav))
     except Exception:
         await msg.answer("Не получилось отправить карточку, попробуй еще раз.", reply_markup=main_menu())
 
@@ -315,9 +362,64 @@ async def search_free(msg: Message) -> None:
 async def view(cb: CallbackQuery) -> None:
     await cb.answer()
     try:
-        await send_card_by_libria(cb.message, int(cb.data.split(":")[1]))
+        await send_card_by_libria(cb.message, int(cb.data.split(":")[1]), cb.from_user.id)
     except Exception:
         await cb.message.answer("Не получилось загрузить, попробуй еще раз.", reply_markup=main_menu())
+
+
+@router.callback_query(F.data.startswith("dubs:"))
+async def view_dubs(cb: CallbackQuery) -> None:
+    """Все озвучки одного тайтла: ищем по названию, фильтруем по shikimori_id."""
+    await cb.answer()
+    try:
+        rid = int(cb.data.split(":")[1])
+        base = await anilibria.get_release(rid, with_episodes=False)
+        sh = (base.get("shikimori") or {}).get("id")
+        title = anilibria.title_of(base)
+        found = await anilibria.search_releases(title, limit=10)
+        items = [r for r in found if (r.get("shikimori") or {}).get("id") == sh] if sh else found[:5]
+        if not items:
+            items = [base]
+        counts = await asyncio.gather(*[anilibria.get_episode_count(r["id"]) for r in items[:6]])
+        await cb.message.answer(
+            f"Озвучки: <b>{esc(title)}</b> — выбери:",
+            reply_markup=kb_dubs(list(zip(items[:6], counts)), rid),
+        )
+    except Exception:
+        await cb.message.answer("Не получилось загрузить озвучки.", reply_markup=main_menu())
+
+
+@router.callback_query(F.data.startswith("q:"))
+async def back_to_search(cb: CallbackQuery) -> None:
+    await cb.answer()
+    try:
+        rid = int(cb.data.split(":")[1])
+        base = await anilibria.get_release(rid, with_episodes=False)
+        await do_search(cb.message, anilibria.title_of(base))
+    except Exception:
+        await cb.message.answer("Не получилось, попробуй еще раз.", reply_markup=main_menu())
+
+
+def _sync_subs_bg() -> None:
+    """Фоновая отправка subscriptions.json в GitHub. Никогда не роняет бота."""
+    try:
+        import asyncio as _aio
+
+        async def _run() -> None:
+            try:
+                await _aio.to_thread(
+                    subs.push_file_to_github, str(BASE_DIR), "anime-telegram-bot/data/subscriptions.json"
+                )
+            except Exception:
+                pass
+
+        try:
+            loop = _aio.get_running_loop()
+        except RuntimeError:
+            return
+        loop.create_task(_run())
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("fav:"))
@@ -325,8 +427,29 @@ async def fav(cb: CallbackQuery) -> None:
     try:
         rid = int(cb.data.split(":")[1])
         r = await anilibria.get_release(rid, with_episodes=False)
-        await add_fav(cfg.db_path, cb.from_user.id, rid, anilibria.title_of(r))
-        await cb.answer("⭐ Добавил в избранное")
+        title = anilibria.title_of(r)
+        await add_fav(cfg.db_path, cb.from_user.id, rid, title)
+        try:
+            subs.upsert_sub(cfg.subs_path, cb.from_user.id, rid, title)
+        except Exception:
+            pass
+        _sync_subs_bg()
+        await cb.answer("⭐ Добавил в избранное + включил уведомления о новых сериях")
+    except Exception:
+        await cb.answer("Не получилось, попробуй еще раз")
+
+
+@router.callback_query(F.data.startswith("unfav:"))
+async def unfav(cb: CallbackQuery) -> None:
+    try:
+        rid = int(cb.data.split(":")[1])
+        await remove_fav(cfg.db_path, cb.from_user.id, rid)
+        try:
+            subs.remove_sub(cfg.subs_path, cb.from_user.id, rid)
+        except Exception:
+            pass
+        _sync_subs_bg()
+        await cb.answer("Убрал из избранного, уведомления выключены")
     except Exception:
         await cb.answer("Не получилось, попробуй еще раз")
 

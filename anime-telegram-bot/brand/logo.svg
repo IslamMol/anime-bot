@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1033"/>
+      <stop offset="1" stop-color="#0b0a10"/>
+    </linearGradient>
+    <linearGradient id="play" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9d7bff"/>
+      <stop offset="1" stop-color="#6c3df4"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b388ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="196" r="104" fill="none" stroke="url(#play)" stroke-width="26"/>
+  <path d="M236 148 L316 196 L236 244 Z" fill="url(#play)"/>
+  <text x="256" y="372" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="56" font-weight="800" letter-spacing="1" fill="url(#word)">AniCatalog</text>
+  <text x="256" y="412" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" letter-spacing="6" fill="#848895">ANIME • RU</text>
+</svg>

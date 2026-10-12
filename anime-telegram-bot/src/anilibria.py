@@ -83,6 +83,16 @@ async def get_new_2026(limit: int = 5) -> list[dict]:
         return r.json().get("data") or []
 
 
+async def get_episode_count(release_id: int | str) -> int:
+    """Сколько серий доступно в озвучке (для уведомлений о новых сериях)."""
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(f"{BASE}/anime/releases/{release_id}", params={"include": "episodes"})
+        r.raise_for_status()
+        j = r.json()
+        eps = j.get("episodes") if isinstance(j, dict) else None
+        return len(eps) if isinstance(eps, list) else 0
+
+
 async def get_random() -> dict | None:
     async with httpx.AsyncClient(timeout=20) as c:
         r = await c.get(f"{BASE}/anime/releases/random")

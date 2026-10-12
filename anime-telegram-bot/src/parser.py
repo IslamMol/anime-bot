@@ -12,6 +12,7 @@ from . import anilibria
 from .config import load_config
 from .db import init_db
 from .posted import load_posted_ids, save_posted_ids
+from .subs import load_counts, load_subs, save_counts
 
 
 def esc(s: object) -> str:
@@ -59,7 +60,61 @@ async def post_new(limit: int) -> int:
     # журнал пишем один раз в конце — и локально так безопаснее (не будет
     # полузаписанного состояния, если упадем посередине)
     save_posted_ids(cfg.posted_path, posted_ids)
+    try:
+        notified = await check_subscriptions(bot, cfg)
+        print(f"Notified: {notified}")
+    except Exception as e:  # уведомления не должны ронять весь запуск
+        print(f"Notify failed: {e}")
     return posted
+
+
+async def check_subscriptions(bot: Bot, cfg) -> int:
+    """Сверяет счетчики серий по подпискам, шлет «вышла новая серия».
+
+    Первый замер только запоминается (без уведомлений), чтобы не заспамить
+    всех при первом запуске.
+    """
+    subs = load_subs(cfg.subs_path)
+    if not subs:
+        return 0
+    counts = load_counts(cfg.counts_path)
+    by_release: dict[int, list[int]] = {}
+    titles: dict[int, str] = {}
+    for s in subs:
+        by_release.setdefault(s["release_id"], []).append(s["user_id"])
+        titles.setdefault(s["release_id"], s.get("title") or "")
+    notified = 0
+    deep_base = f"https://t.me/{cfg.bot_username}" if cfg.bot_username else ""
+    for rid, user_ids in by_release.items():
+        try:
+            new_count = await anilibria.get_episode_count(rid)
+        except Exception:
+            continue
+        old = counts.get(str(rid))
+        counts[str(rid)] = new_count
+        if old is None or new_count <= old or new_count <= 0:
+            continue
+        title = titles.get(rid) or f"релиз {rid}"
+        kb = None
+        if deep_base:
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(
+                    text="▶ Смотреть",
+                    url=f"{deep_base}?start=libria_{rid}",
+                )
+            ]])
+        for uid in sorted(set(user_ids)):
+            try:
+                await bot.send_message(
+                    uid,
+                    f"🔔 <b>Новая серия!</b> «{esc(title)}» — вышла серия {new_count}.",
+                    reply_markup=kb,
+                )
+                notified += 1
+            except Exception:
+                continue  # юзер заблокировал бота — пропускаем
+    save_counts(cfg.counts_path, counts)
+    return notified
 
 
 def main() -> None:
