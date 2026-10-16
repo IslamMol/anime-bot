@@ -1355,14 +1355,25 @@
   // --- свои контролы: показ/скрытие, play/pause, перемотка, звук, полный экран ---
   const ctlEl = $("ctl");
   let ctlTimer = null;
+  const coarsePointer = matchMedia("(pointer: coarse)").matches;
+  function scheduleCtlHide() {
+    clearTimeout(ctlTimer);
+    if (!video.paused && !coarsePointer) ctlTimer = setTimeout(ctlHide, 5000);
+  }
   function ctlShow() {
     ctlEl.classList.add("show");
-    clearTimeout(ctlTimer);
-    if (!video.paused) ctlTimer = setTimeout(ctlHide, 3200);
+    scheduleCtlHide();
   }
-  function ctlHide() { ctlEl.classList.remove("show"); }
+  function ctlHide() {
+    if (video.paused || coarsePointer || ctlEl.matches(":hover") || ctlEl.contains(document.activeElement)) return;
+    ctlEl.classList.remove("show");
+  }
   function ctlToggle() { ctlShow(); }
   ctlEl.addEventListener("click", (e) => e.stopPropagation()); // клики по панели не добивают до видео
+  ctlEl.addEventListener("pointerenter", () => clearTimeout(ctlTimer));
+  ctlEl.addEventListener("pointerleave", scheduleCtlHide);
+  ctlEl.addEventListener("focusin", () => clearTimeout(ctlTimer));
+  ctlEl.addEventListener("focusout", scheduleCtlHide);
   $("ctlPlay").addEventListener("click", (e) => {
     e.stopPropagation();
     try { if (video.paused) video.play().catch(() => {}); else video.pause(); } catch (err) {}
@@ -1384,19 +1395,29 @@
     const pEl = video.closest(".player");
     if (pEl) pEl.classList.toggle("muted", video.muted || video.volume === 0);
   });
-  $("ctlFs").addEventListener("click", (e) => {
+  $("ctlFs").addEventListener("click", async (e) => {
     e.stopPropagation();
     const pEl = video.closest(".player");
     const d = document;
-    if (d.fullscreenElement || d.webkitFullscreenElement) {
-      (d.exitFullscreen || d.webkitExitFullscreen).call(d);
-    } else if (pEl.requestFullscreen || pEl.webkitRequestFullscreen) {
-      (pEl.requestFullscreen || pEl.webkitRequestFullscreen).call(pEl);
-    } else if (video.webkitEnterFullscreen) {
-      video.webkitEnterFullscreen(); // iOS Safari
+    try {
+      if (d.fullscreenElement || d.webkitFullscreenElement) {
+        const exit = d.exitFullscreen || d.webkitExitFullscreen;
+        if (exit) await exit.call(d);
+      } else if (pEl.requestFullscreen || pEl.webkitRequestFullscreen) {
+        const enter = pEl.requestFullscreen || pEl.webkitRequestFullscreen;
+        await enter.call(pEl);
+      } else if (video.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen(); // iOS Safari
+      } else {
+        toast("Полный экран не поддерживается этим браузером");
+      }
+    } catch (err) {
+      toast("Не удалось открыть полный экран");
     }
     ctlShow();
   });
+  document.addEventListener("fullscreenchange", ctlShow);
+  document.addEventListener("webkitfullscreenchange", ctlShow);
   // перемотка: перетаскивание по таймлайну
   const seekEl = $("ctSeek");
   function seekFromEvent(e) {
@@ -1443,8 +1464,8 @@
   video.addEventListener("pause", ctlOnState);
   video.addEventListener("ended", ctlOnState);
   video.addEventListener("loadedmetadata", () => { updBar(); });
-  seekEl.addEventListener("pointerenter", () => { clearTimeout(ctlTimer); });
-  seekEl.addEventListener("pointerleave", () => { if (!video.paused) { clearTimeout(ctlTimer); ctlTimer = setTimeout(ctlHide, 3200); } });
+  seekEl.addEventListener("pointerenter", () => clearTimeout(ctlTimer));
+  seekEl.addEventListener("pointerleave", scheduleCtlHide);
   video.addEventListener("mousemove", () => { if (!video.paused) ctlShow(); });
   video.addEventListener("mouseleave", () => { if (!video.paused) ctlHide(); });
   window._ctlShow = ctlShow;
