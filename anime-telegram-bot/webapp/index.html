@@ -81,8 +81,12 @@
   .badge {
     position: absolute; top: 6px; left: 6px; font-size: 11px; font-weight: 700; color: #ffd98a;
     background: rgba(0,0,0,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,217,138,.35); border-radius: 8px; padding: 2px 7px;
+    border: 1px solid rgba(255,217,138,.35); border-radius: 8px; padding: 3px 7px;
+    display: inline-flex; align-items: center; gap: 4px;
   }
+  .badge .ic, .chips .rate .ic, .feat-meta .ic { width: 11px; height: 11px; color: #ffd98a; }
+  .chips .rate { color: #ffd98a; border-color: rgba(255,217,138,.3);
+    display: inline-flex; align-items: center; gap: 4px; }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
   @media (min-width: 560px) { .grid { grid-template-columns: repeat(4, 1fr); } }
   .card { background: none; border: 0; padding: 0; text-align: left; color: var(--txt); position: relative; }
@@ -147,8 +151,14 @@
   .netrow button {
     flex: 1; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 10px; min-height: 38px; font-size: 12.5px; font-weight: 600; padding: 4px 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    transition: transform 120ms var(--ease-out), border-color 140ms, background 140ms;
   }
+  .netrow button:hover { border-color: var(--acc); }
   .netrow button:active { transform: scale(.97); }
+  .netrow.search-row { flex-wrap: wrap; }
+  .netrow.search-row > span { flex: 0 0 100%; }
+  .netrow.search-row button { min-width: 0; }
 
   .tabs { display: flex; gap: 6px; padding: 0 0 8px; }
   .tabs button {
@@ -164,7 +174,8 @@
     .tabs button:hover, #eps button:hover, .pager button:hover, .more-btn:hover { filter: brightness(1.15); }
   }
   .player { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-top: 2px; }
-  video { width: 100%; aspect-ratio: 16/9; max-height: 34dvh; background: #000; border-radius: var(--radius); }
+  video { width: 100%; aspect-ratio: 16/9; max-height: 34dvh; background: #000; border-radius: var(--radius);
+    box-shadow: 0 10px 34px rgba(124,92,240,.22), 0 2px 10px rgba(0,0,0,.5); }
   .eps-head { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 2px 4px; }
   .eps-head b { font-size: 12.5px; }
   .eps-head span { font-size: 11.5px; color: var(--muted); }
@@ -181,19 +192,35 @@
     border-radius: 8px; min-height: 34px; min-width: 34px; padding: 4px 10px; font-size: 13px;
   }
   .pager .page-label { flex: 1; text-align: center; font-size: 12px; color: var(--muted); }
-  .skips { display: flex; gap: 6px; padding: 0 0 8px; }
+  /* пропуск опенинга/эндинга — поверх видео, справа внизу, появляется только в окне */
+  .skips { position: absolute; right: 8px; bottom: 10px; z-index: 7;
+    display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+    transition: opacity .2s ease, transform .2s ease; }
+  .skips.hiding { opacity: 0; transform: translateY(6px); pointer-events: none; }
   .skips button {
-    flex: 1; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 10px; min-height: 38px; font-size: 12.5px; font-weight: 600;
-    transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms;
+    background: rgba(0,0,0,.7); color: #fff; border: 1px solid rgba(255,255,255,.25);
+    border-radius: 999px; min-height: 34px; padding: 6px 14px;
+    font-size: 12.5px; font-weight: 700; backdrop-filter: blur(6px);
+    display: inline-flex; align-items: center; gap: 6px;
+    -webkit-backdrop-filter: blur(6px); transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms;
   }
-  .skips button:hover { border-color: var(--acc); }
-  .skips button:active { transform: scale(.96); }
-  .vopts { display: flex; gap: 6px; padding: 0 0 8px; }
-  .vopts select {
-    flex: 1; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 10px; min-height: 38px; padding: 0 8px; font-size: 12.5px; outline: none;
+  .skips .ic { color: #b9a4ff; }
+  .skips button:hover { border-color: var(--acc); background: rgba(0,0,0,.85); }
+  .skips button:active { transform: scale(.94); }
+  @media (max-width: 480px) { .skips button { min-height: 38px; padding: 8px 16px; } }
+  .vopts { display: flex; flex-direction: column; gap: 6px; padding: 0 0 8px; }
+  .opt { display: flex; align-items: center; gap: 8px; }
+  .opt-k { flex: 0 0 auto; width: 64px; font-size: 11px; color: var(--muted); }
+  .seg { display: flex; gap: 6px; flex: 1; min-width: 0; }
+  .seg button {
+    flex: 1; min-width: 0; min-height: 36px; padding: 4px 6px;
+    background: var(--btn); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 9px; font-size: 12.5px; font-weight: 700;
+    transition: transform 120ms var(--ease-out), background 140ms, border-color 140ms;
   }
+  .seg button.active { background: var(--acc); border-color: var(--acc); color: #fff;
+    box-shadow: 0 3px 12px rgba(124,92,240,.35); }
+  .seg button:active { transform: scale(.95); }
   #eps { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     gap: 6px; max-height: 28dvh; overflow-y: auto; overscroll-behavior: contain; padding: 2px 2px 8px; }
   #eps button {
@@ -225,6 +252,92 @@
     z-index: 7; font-size: 15px; font-weight: 800; color: #fff; white-space: nowrap;
     background: rgba(0,0,0,.68); border: 1px solid var(--line); border-radius: 12px;
     padding: 10px 18px; pointer-events: none; }
+  /* тонкий прогресс сверху видео: видно без тапа по контролам */
+  .pbar { position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 6;
+    background: rgba(255,255,255,.16); pointer-events: none; overflow: hidden;
+    border-radius: var(--radius) var(--radius) 0 0; }
+  .pbar .buf { position: absolute; top: 0; left: 0; height: 100%; width: 0;
+    background: rgba(255,255,255,.35); }
+  .pbar .fill { position: absolute; top: 0; left: 0; height: 100%; width: 0;
+    background: var(--acc); box-shadow: 0 0 6px var(--acc); }
+  /* --- свои контролы плеера (вместо нативных браузерных) --- */
+  .ic { display: inline-block; width: 16px; height: 16px; flex: 0 0 auto; vertical-align: -3px;
+    background: currentColor;
+    -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
+  .i-play  { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5.2v13.6L19 12z'/%3E%3C/svg%3E"); }
+  .i-pause { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 5h3.6v14H6.5zM13.9 5h3.6v14h-3.6z'/%3E%3C/svg%3E"); }
+  .i-skip  { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5.2v13.6L14 12zM16.4 5h3v14h-3z'/%3E%3C/svg%3E"); }
+  .i-vol   { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9.2h3.6L12.6 5v14L7.6 14.8H4zM15.2 8.6a5 5 0 0 1 0 6.8v-6.8zm2.3-3a9 9 0 0 1 0 12.8v-12.8z'/%3E%3C/svg%3E"); }
+  .i-mute  { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9.2h3.6L12.6 5v14L7.6 14.8H4zM15.4 9.4l1.4-1.4 5.2 5.2-1.4 1.4zM15.4 14.6l5.2-5.2 1.4 1.4-5.2 5.2z'/%3E%3C/svg%3E"); }
+  .i-fs    { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9V4h5v2H6v3H4zm11-5h5v5h-2V6h-3V4zM4 15h2v3h3v2H4v-5zm14 0h2v5h-5v-2h3v-3z'/%3E%3C/svg%3E"); }
+  .i-fsx   { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 4v2H6v3H4V4h5zm6 0h5v5h-2V6h-3V4zM6 13h2v3h3v2H6v-5zm12 0h2v5h-5v-2h3v-3z'/%3E%3C/svg%3E"); }
+  .i-book  { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 4.6C4 3.7 4.7 3 5.6 3H10a3 3 0 0 1 2 .8A3 3 0 0 1 14 3h4.4c.9 0 1.6.7 1.6 1.6V17a2.6 2.6 0 0 1-2.6 2.6H14a3 3 0 0 0-2 .8 3 3 0 0 0-2-.8H5.6A2.6 2.6 0 0 1 3 17V4.6zm10 1.4v11.5c.6-.3 1.3-.5 2-.5h3V6h-3a1.6 1.6 0 0 0-2 .6zM5 6v11.5c.6-.3 1.3-.5 2-.5h3V6H7a2 2 0 0 0-2 1.2z'/%3E%3C/svg%3E"); }
+  .i-star  { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z'/%3E%3C/svg%3E"); }
+  .i-chevL { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.4 4.6L8 12l7.4 7.4 1.4-1.4L10.8 12l6-6z'/%3E%3C/svg%3E"); }
+  .i-chevR { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8.6 4.6L16 12l-7.4 7.4-1.4-1.4L13.2 12l-6-6z'/%3E%3C/svg%3E"); }
+
+  .ctl { position: absolute; left: 0; right: 0; bottom: 0; z-index: 8;
+    display: flex; align-items: center; gap: 8px;
+    padding: 16px 8px 7px; border-radius: 0 0 var(--radius) var(--radius);
+    background: linear-gradient(180deg, rgba(5,5,10,0) 0%, rgba(5,5,10,.78) 55%, rgba(5,5,10,.92) 100%);
+    opacity: 0; transform: translateY(6px); pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease; }
+  .ctl.show { opacity: 1; transform: none; pointer-events: auto; }
+  .ctl-btn { width: 32px; height: 32px; border: 0; padding: 0; border-radius: 50%;
+    background: rgba(255,255,255,.12); color: #fff; display: flex; align-items: center; justify-content: center;
+    transition: transform 120ms var(--ease-out), background 140ms; }
+  .ctl-btn:hover { background: rgba(255,255,255,.2); }
+  .ctl-btn:active { transform: scale(.9); }
+  .ctl-btn .ic { width: 15px; height: 15px; }
+  #ctlPlay { width: 34px; height: 34px; background: var(--acc); }
+  #ctlPlay:hover { background: #8d70f5; }
+  /* состояние play/pause и mute — переключаем видимость иконок */
+  #ctlPlay .i-pause, #ctlMute .i-mute, #ctlFs .i-fsx { display: none; }
+  .player.playing #ctlPlay .i-play { display: none; }
+  .player.playing #ctlPlay .i-pause { display: inline-block; }
+  .player.muted #ctlMute .i-vol { display: none; }
+  .player.muted #ctlMute .i-mute { display: inline-block; }
+  .player:fullscreen #ctlFs .i-fs, .player:-webkit-full-screen #ctlFs .i-fs { display: none; }
+  .player:fullscreen #ctlFs .i-fsx, .player:-webkit-full-screen #ctlFs .i-fsx { display: inline-block; }
+  .ct-time { display: flex; align-items: baseline; gap: 3px; font-size: 10.5px;
+    color: rgba(255,255,255,.9); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ct-time b { font-weight: 700; }
+  .ct-time i { opacity: .45; font-style: normal; }
+  .ct-time em { font-style: normal; opacity: .65; }
+  .seek { position: relative; flex: 1; min-width: 40px; height: 24px;
+    display: flex; align-items: center; cursor: pointer; touch-action: none; }
+  .seek .tr, .seek .buf, .seek .fill { position: absolute; left: 0; height: 4px; border-radius: 999px; }
+  .seek .tr { right: 0; background: rgba(255,255,255,.24); }
+  .seek .buf { width: 0; background: rgba(255,255,255,.42); }
+  .seek .fill { width: 0; background: var(--acc); box-shadow: 0 0 8px rgba(124,92,240,.7); }
+  .seek .knob { position: absolute; width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.6); transform: translateX(-50%) scale(0);
+    transition: transform .14s var(--ease-out); pointer-events: none; }
+  .seek:hover .knob, .seek.drag .knob { transform: translateX(-50%) scale(1); }
+  .seek.drag .fill { box-shadow: 0 0 12px var(--acc); }
+  .vol { display: flex; align-items: center; gap: 6px; }
+  .vol input[type=range] { width: 64px; height: 24px; accent-color: var(--acc); cursor: pointer; }
+  @media (max-width: 540px) { .vol input[type=range] { display: none; } }
+
+  /* вспышка play/pause при тапе по центру видео */
+  .flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 62px; height: 62px; border-radius: 50%; z-index: 7;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    color: #fff; pointer-events: none; animation: flashPop .7s ease forwards; }
+  .flash .ic { width: 26px; height: 26px; }
+  /* полноэкранный режим: видео на весь экран, контролы поверх */
+  .player:-webkit-full-screen, .player:fullscreen {
+    background: #000; display: flex; align-items: center; justify-content: center; }
+  .player:-webkit-full-screen video, .player:fullscreen video {
+    max-height: 100vh; height: 100vh; width: 100%; object-fit: contain;
+    border-radius: 0; box-shadow: none; }
+  @keyframes flashPop {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(.6); }
+    18% { opacity: 1; transform: translate(-50%,-50%) scale(1.05); }
+    70% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1.25); }
+  }
   .nextup { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
     gap: 8px; align-items: center; justify-content: center; text-align: center; padding: 12px;
     background: rgba(5,5,10,.8); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -339,6 +452,22 @@
     transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
   }
   .toast.show { opacity: 1; transform: none; }
+  .dialog-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center;
+    padding: 20px; background: rgba(3,3,8,.76); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .dialog-card { width: min(100%, 360px); padding: 22px; border: 1px solid rgba(255,255,255,.12);
+    border-radius: 22px; background: linear-gradient(155deg, #201d2b, #111017 72%); box-shadow: 0 24px 80px #0009;
+    text-align: center; animation: dialogIn .24s var(--ease-out); }
+  @keyframes dialogIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+  .cat-art { display: block; width: 116px; height: 102px; margin: 0 auto 12px; color: #08080d;
+    filter: drop-shadow(0 8px 18px rgba(124,92,240,.22)); }
+  .cat-art.hidden { display: none; }
+  .dialog-card h2 { margin: 0 0 8px; font-size: 18px; }
+  .dialog-card p { margin: 0 0 16px; color: #aaa7b4; font-size: 13px; line-height: 1.55; }
+  .dialog-actions { display: grid; gap: 8px; }
+  .dialog-actions button { min-height: 42px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--btn); color: var(--txt); font-size: 13px; font-weight: 700; }
+  .dialog-actions button.primary { border-color: transparent; background: var(--grad); }
+  @media (prefers-reduced-motion: reduce) { .dialog-card { animation: none; } }
 </style>
 </head>
 <body>
@@ -368,7 +497,7 @@
       <div class="sec-head"><b>Продолжить просмотр</b><button id="contClear">Очистить</button></div>
       <div class="hero" id="contRow"></div>
     </div>
-    <div class="sec-head"><b>Сейчас смотрят</b><button class="hero-btn" id="heroAll" aria-label="Листать">›</button></div>
+    <div class="sec-head"><b>Сейчас смотрят</b><button class="hero-btn" id="heroAll" aria-label="Листать"><i class="ic i-chevR"></i></button></div>
     <div class="hero" id="hero"><div class="skel" style="flex:0 0 148px;height:238px"></div><div class="skel" style="flex:0 0 148px;height:238px"></div><div class="skel" style="flex:0 0 148px;height:238px"></div></div>
     <div class="sec-head"><b>Новинки 2026</b><button data-list="new2026">Все</button></div>
     <div class="grid" id="grid-new"></div>
@@ -387,7 +516,7 @@
 
   <!-- СПИСОК -->
   <div class="view hidden" id="view-list">
-    <div class="topbar"><button class="back" data-back aria-label="Назад">‹</button><div class="logo" id="list-title">Список</div></div>
+    <div class="topbar"><button class="back" data-back aria-label="Назад"><i class="ic i-chevL"></i></button><div class="logo" id="list-title">Список</div></div>
     <div class="grid" id="grid-list"></div>
     <button class="more-btn" id="list-more">Показать еще</button>
   </div>
@@ -414,7 +543,7 @@
   <!-- ТАЙТЛ -->
   <div class="view hidden" id="view-title">
     <div id="t-back"></div>
-    <div class="topbar"><button class="back" id="backBtn" aria-label="Назад">‹</button><div class="logo" id="t-crumb">Тайтл</div></div>
+    <div class="topbar"><button class="back" id="backBtn" aria-label="Назад"><i class="ic i-chevL"></i></button><div class="logo" id="t-crumb">Тайтл</div></div>
     <div class="title-head">
       <img id="t-poster" alt="" loading="lazy" />
       <div class="info">
@@ -426,7 +555,8 @@
     <div class="desc" id="t-desc"></div>
     <button class="more hidden" id="t-more">Показать полностью</button>
     <div class="star-row"><button id="t-fav">В избранное</button></div>
-    <div class="netrow"><span>Нет нужной серии?</span><button id="netYt">Искать на YouTube</button><button id="netVk">Искать в VK Видео</button></div>
+    <div class="netrow search-row"><span>Нет нужной серии?</span><button id="netYt">YouTube</button><button id="netVk">VK Видео</button><button id="netVost">AnimeVost</button><button id="netWeb">Поиск в интернете</button></div>
+    <div class="netrow"><span>Читать оригинал:</span><button id="mgRm"><i class="ic i-book"></i>ReManga</button><button id="mgMl"><i class="ic i-book"></i>MangaLib</button></div>
     <div class="sub" id="count" style="font-size:12px;color:var(--muted);padding:2px 0 6px"></div>
     <div id="seasons"></div>
     <div class="dubchips hidden" id="dubchips"></div>
@@ -436,21 +566,21 @@
     </div>
     <div id="paneA">
       <button class="cont-btn hidden" id="contBtn"></button>
-      <div class="player"><video id="v" controls playsinline preload="metadata"></video><div class="vspin hidden" id="vspin"><span></span></div><div id="gestInd" class="hidden"></div><div class="nextup hidden" id="nextUp"><b>Следующая серия через</b><div class="nnum" id="nextN">5</div><div class="ninfo" id="nextInfo"></div><div class="nrow"><button id="nextGo">Смотреть</button><button id="nextCancel" class="ghost">Отмена</button></div></div></div>
+      <div class="player"><video id="v" playsinline preload="metadata"></video><div class="pbar" id="pbar"><div class="buf" id="pbuf"></div><div class="fill" id="pfill"></div></div><div class="vspin hidden" id="vspin"><span></span></div><div id="flash" class="hidden"></div><div class="skips hidden" id="skips"><button id="skipOp"><i class="ic i-skip"></i>Опенинг</button><button id="skipEd"><i class="ic i-skip"></i>Эндинг</button></div><div id="gestInd" class="hidden"></div><div class="ctl" id="ctl"><button class="ctl-btn" id="ctlPlay" aria-label="Играть"><i class="ic i-play"></i><i class="ic i-pause"></i></button><span class="ct-time"><b id="ctCur">0:00</b><i>/</i><em id="ctDur">0:00</em></span><div class="seek" id="ctSeek" role="slider" aria-label="Позиция" tabindex="0"><div class="tr"></div><div class="buf" id="ctBuf"></div><div class="fill" id="ctFill"></div><div class="knob" id="ctKnob"></div></div><div class="vol"><button class="ctl-btn" id="ctlMute" aria-label="Звук"><i class="ic i-vol"></i><i class="ic i-mute"></i></button><input type="range" id="ctlVol" min="0" max="1" step="0.05" value="1" aria-label="Громкость" /></div><button class="ctl-btn" id="ctlFs" aria-label="Полный экран"><i class="ic i-fs"></i><i class="ic i-fsx"></i></button></div><div class="nextup hidden" id="nextUp"><b>Следующая серия через</b><div class="nnum" id="nextN">5</div><div class="ninfo" id="nextInfo"></div><div class="nrow"><button id="nextGo">Смотреть</button><button id="nextCancel" class="ghost">Отмена</button></div></div></div>
       <div class="epcard hidden" id="epCard"><img id="epImg" alt="" /><div><b id="epTitle"></b><span id="epName"></span></div></div>
       <div class="eps-head"><b>Серии</b><span id="epsInfo"></span></div>
-      <div class="skips hidden" id="skips">
-        <button id="skipOp">Пропустить опенинг</button>
-        <button id="skipEd">Пропустить эндинг</button>
-      </div>
       <div class="vopts">
-        <select id="vQuality"><option value="auto">Качество</option><option value="1080">1080</option><option value="720">720</option><option value="480">480</option></select>
-        <select id="vSpeed"><option value="1">1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>
+        <div class="opt"><span class="opt-k">Качество</span><div class="seg" id="vQuality">
+          <button data-q="auto">Авто</button><button data-q="1080">1080p</button><button data-q="720">720p</button><button data-q="480">480p</button>
+        </div></div>
+        <div class="opt"><span class="opt-k">Скорость</span><div class="seg" id="vSpeed">
+          <button data-s="1">1×</button><button data-s="1.25">1.25×</button><button data-s="1.5">1.5×</button><button data-s="2">2×</button>
+        </div></div>
       </div>
       <div class="pager hidden" id="pager">
-        <button id="pgPrev" aria-label="Назад">‹</button>
+        <button id="pgPrev" aria-label="Назад"><i class="ic i-chevL"></i></button>
         <div class="page-label" id="pgLabel"></div>
-        <button id="pgNext" aria-label="Вперед">›</button>
+        <button id="pgNext" aria-label="Вперед"><i class="ic i-chevR"></i></button>
       </div>
       <div id="eps"></div>
     </div>
@@ -466,6 +596,20 @@
     <div class="topbar"><div class="logo">Избранное</div></div>
     <div class="grid" id="grid-favs"></div>
     <div class="warn hidden" id="favsEmpty">Пока пусто. Открой тайтл и нажми «В избранное».</div>
+  </div>
+</div>
+
+<div class="dialog-backdrop hidden" id="mangaDialog" role="dialog" aria-modal="true" aria-labelledby="mangaDialogTitle">
+  <div class="dialog-card">
+    <svg class="cat-art" viewBox="0 0 120 100" aria-hidden="true">
+      <path fill="currentColor" d="M16 39 10 5l28 17a48 48 0 0 1 44 0L110 5l-6 34c7 9 11 20 11 31 0 17-19 25-55 25S5 87 5 70c0-12 4-23 11-31Z"/>
+      <path fill="#b9a4ff" d="M24 31 19 14l15 10zm72 0 5-17-15 10z"/>
+      <ellipse cx="42" cy="58" rx="4" ry="7" fill="#d9ccff"/><ellipse cx="78" cy="58" rx="4" ry="7" fill="#d9ccff"/>
+      <path d="m56 68 4 3 4-3m-4 3v4m0-4-7-3m7 3 7-3" fill="none" stroke="#d9ccff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <h2 id="mangaDialogTitle">Не удалось найти мангу?</h2>
+    <p>Возможно, у первоисточника другое название. Попробуй поискать по английскому названию или в интернете.</p>
+    <div class="dialog-actions"><button class="primary" id="mangaWebSearch">Поискать в интернете</button><button id="mangaDialogClose">Понятно</button></div>
   </div>
 </div>
 
@@ -568,7 +712,9 @@
     const sh = r.shikimori || {};
     if (sh.rating) {
       const badge = document.createElement("span");
-      badge.className = "badge"; badge.textContent = "★ " + sh.rating;
+      badge.className = "badge";
+      badge.innerHTML = '<i class="ic i-star"></i>';
+      badge.appendChild(document.createTextNode(" " + sh.rating));
       b.appendChild(badge);
     }
     const t = document.createElement("div"); t.className = "t"; t.textContent = titleOf(r);
@@ -668,7 +814,10 @@
         const sh = f.shikimori || {};
         setImg($("featImg"), posterOf(f, "big"), titleOf(f));
         $("featTitle").textContent = titleOf(f);
-        $("featMeta").textContent = [f.year, sh.rating ? "★ " + sh.rating : "", f.is_ongoing ? "онгоинг" : ""].filter(Boolean).join(" • ");
+        const meta = [f.year ? String(f.year) : ""];
+        if (sh.rating) meta.push('<i class="ic i-star" style="width:12px;height:12px;vertical-align:-2px"></i> ' + sh.rating);
+        if (f.is_ongoing) meta.push("онгоинг");
+        $("featMeta").innerHTML = meta.filter(Boolean).join(" • ");
         $("featBtn").onclick = () => openTitle(f.id);
         $("feat").classList.remove("hidden");
       }
@@ -976,17 +1125,25 @@
   // --- тайтл ---
   const video = $("v"), box = $("eps");
   let releaseId = null, epsList = [], curIdx = 0, page = 0, hls = null, curRelease = null, animego = "";
-  let hlsRetry = 0, pendingSeek = 0, lastSave = 0;
-  function playUrl(url) {
+  let hlsRetry = 0, pendingSeek = 0, lastSave = 0, sourceChanging = false;
+  function playUrl(url, autoplay = true) {
     if (!url) return;
-    showSpin(true);
+    if (autoplay) showSpin(true);
     hlsRetry = 0;
     if (Hls.isSupported()) {
       if (hls) hls.destroy();
       hls = new Hls({ maxBufferLength: 30 });
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (pendingSeek > 0) { try { video.currentTime = pendingSeek; } catch (e) {} pendingSeek = 0; }
-        video.play().catch(() => {});
+        if (autoplay) {
+          showSpin(false);
+          const tryPlay = () => { try { video.play().catch(() => {}); } catch (e) {} };
+          tryPlay();
+          video.addEventListener("canplay", () => { if (video.paused) tryPlay(); }, { once: true });
+        } else {
+          showSpin(false); // просто подготавлили — ждем, когда пользователь нажмет play
+          ctlShow();       // на паузе контролы видны
+        }
       });
       hls.on(Hls.Events.ERROR, (ev, data) => {
         if (!data || !data.fatal) return;
@@ -1011,19 +1168,24 @@
           try { video.currentTime = s; } catch (e) {}
         });
       }
-      video.src = url; video.play().catch(() => {});
+      video.src = url;
+      if (autoplay) video.play().catch(() => {});
+      else { showSpin(false); ctlShow(); }
     } else { video.src = url; }
   }
   function showSpin(on) { $("vspin").classList.toggle("hidden", !on); }
-  function playIdx(i) {
+  function playIdx(i, autoplay = true) {
     if (i < 0 || i >= epsList.length) return;
+    if (epsList.length && releaseId && i !== curIdx) savePos();
     stopNext();
     curIdx = i; page = Math.floor(i / PAGE); renderPage();
     const ep = epsList[i];
     $("epsInfo").textContent = `Серия ${ep.ordinal} / ${epsList.length}`;
     renderEpCard(ep);
     renderSkips(ep);
-    playUrl(epUrl(ep));
+    sourceChanging = true;
+    video.addEventListener("loadedmetadata", () => { sourceChanging = false; }, { once: true });
+    playUrl(epUrl(ep), autoplay);
     if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} }
   }
   function renderPage() {
@@ -1122,17 +1284,171 @@
       gestShow("+10 сек");
     }
   });
+  // --- вспышка ▶/❚❚: тап по центру видео включает/ставит на паузу ---
+  const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  function showFlash(kind) {
+    const f = $("flash");
+    f.innerHTML = "";
+    const ic = document.createElement("i");
+    ic.className = "ic i-" + kind;
+    f.appendChild(ic);
+    f.classList.remove("hidden");
+    f.style.animation = "none"; void f.offsetWidth; f.style.animation = "";
+    clearTimeout(f._h);
+    f._h = setTimeout(() => f.classList.add("hidden"), 700);
+  }
+  video.addEventListener("click", (e) => {
+    const rect = video.getBoundingClientRect();
+    const x = e.clientX;
+    const inMid = x >= rect.left + rect.width * 0.35 && x <= rect.left + rect.width * 0.65;
+    if (inMid) {
+      e.preventDefault(); // свой toggle вместо нативного (иначе двойное срабатывание)
+      try {
+        if (video.paused) { video.play().catch(() => {}); showFlash("play"); }
+        else { video.pause(); showFlash("pause"); }
+      } catch (err) {}
+    } else if (finePointer) {
+      // десктоп: одиночный клик по краю не должен ставить паузу перед перемоткой
+      e.preventDefault();
+    }
+    ctlToggle(); // тап показывает/прячет панель управления
+  });
   // позиция просмотра: запоминаем серию и секунду (пока локально, позже — синк на свой сервер)
   function posKey(id) { return "pos:" + (id || releaseId); }
   function savePos() {
-    if (!releaseId || !epsList.length) return;
+    if (sourceChanging || !releaseId || !epsList.length) return;
     try { localStorage.setItem(posKey(), JSON.stringify({ ep: epsList[curIdx].ordinal, t: Math.floor(video.currentTime || 0) })); } catch (e) {}
     try { markContDirty(); } catch (e) {}
   }
   video.addEventListener("timeupdate", () => {
     const now = Date.now();
-    if (now - lastSave > 5000) { lastSave = now; savePos(); }
+    if (!sourceChanging && now - lastSave > 5000) { lastSave = now; savePos(); }
+    updBar();
   });
+  video.addEventListener("progress", updBar);
+  let seeking = false;
+  function updBar() {
+    try {
+      const d = video.duration || 0;
+      const t = video.currentTime || 0;
+      let b = 0;
+      if (d && video.buffered.length) {
+        for (let i = 0; i < video.buffered.length; i++) {
+          if (video.buffered.start(i) <= t && t <= video.buffered.end(i)) { b = video.buffered.end(i); break; }
+        }
+        if (!b) b = video.buffered.end(video.buffered.length - 1);
+      }
+      const pct = d ? Math.min(100, (t / d) * 100) : 0;
+      const bpct = d ? Math.min(100, (b / d) * 100) : 0;
+      $("pfill").style.width = pct + "%";
+      $("pbuf").style.width = bpct + "%";
+      if (!seeking) {
+        $("ctFill").style.width = pct + "%";
+        $("ctKnob").style.left = pct + "%";
+      }
+      $("ctBuf").style.width = bpct + "%";
+      $("ctCur").textContent = fmtT(t);
+      $("ctDur").textContent = fmtT(d);
+    } catch (e) {}
+  }
+
+  // --- свои контролы: показ/скрытие, play/pause, перемотка, звук, полный экран ---
+  const ctlEl = $("ctl");
+  let ctlTimer = null;
+  function ctlShow() {
+    ctlEl.classList.add("show");
+    clearTimeout(ctlTimer);
+    if (!video.paused) ctlTimer = setTimeout(ctlHide, 3200);
+  }
+  function ctlHide() { ctlEl.classList.remove("show"); }
+  function ctlToggle() { ctlShow(); }
+  ctlEl.addEventListener("click", (e) => e.stopPropagation()); // клики по панели не добивают до видео
+  $("ctlPlay").addEventListener("click", (e) => {
+    e.stopPropagation();
+    try { if (video.paused) video.play().catch(() => {}); else video.pause(); } catch (err) {}
+    ctlShow();
+  });
+  $("ctlMute").addEventListener("click", (e) => {
+    e.stopPropagation();
+    video.muted = !video.muted;
+    if (!video.muted && video.volume === 0) video.volume = 1;
+    ctlShow();
+  });
+  $("ctlVol").addEventListener("input", (e) => {
+    e.stopPropagation();
+    video.volume = parseFloat(e.target.value);
+    video.muted = video.volume === 0;
+  });
+  video.addEventListener("volumechange", () => {
+    $("ctlVol").value = video.muted ? 0 : video.volume;
+    const pEl = video.closest(".player");
+    if (pEl) pEl.classList.toggle("muted", video.muted || video.volume === 0);
+  });
+  $("ctlFs").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const pEl = video.closest(".player");
+    const d = document;
+    if (d.fullscreenElement || d.webkitFullscreenElement) {
+      (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+    } else if (pEl.requestFullscreen || pEl.webkitRequestFullscreen) {
+      (pEl.requestFullscreen || pEl.webkitRequestFullscreen).call(pEl);
+    } else if (video.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen(); // iOS Safari
+    }
+    ctlShow();
+  });
+  // перемотка: перетаскивание по таймлайну
+  const seekEl = $("ctSeek");
+  function seekFromEvent(e) {
+    const r = seekEl.getBoundingClientRect();
+    const cx = (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
+    const ratio = Math.min(1, Math.max(0, (cx - r.left) / r.width));
+    if (video.duration) video.currentTime = ratio * video.duration;
+    $("ctFill").style.width = ratio * 100 + "%";
+    $("ctKnob").style.left = ratio * 100 + "%";
+    $("ctCur").textContent = fmtT((video.duration || 0) * ratio);
+  }
+  seekEl.addEventListener("pointerdown", (e) => {
+    e.stopPropagation(); e.preventDefault();
+    seeking = true; seekEl.classList.add("drag");
+    try { seekEl.setPointerCapture(e.pointerId); } catch (err) {}
+    seekFromEvent(e); ctlShow();
+  });
+  seekEl.addEventListener("pointermove", (e) => { if (seeking) { e.stopPropagation(); seekFromEvent(e); } });
+  seekEl.addEventListener("pointerup", (e) => {
+    if (!seeking) return;
+    e.stopPropagation();
+    seeking = false; seekEl.classList.remove("drag");
+    seekFromEvent(e); updBar(); ctlShow();
+  });
+  seekEl.addEventListener("pointercancel", () => { seeking = false; seekEl.classList.remove("drag"); updBar(); });
+  seekEl.addEventListener("keydown", (e) => {
+    if (!video.duration) return;
+    let d = 0;
+    if (e.key === "ArrowRight") d = 5; else if (e.key === "ArrowLeft") d = -5;
+    if (d) { e.preventDefault(); try { video.currentTime = Math.min(video.duration, Math.max(0, video.currentTime + d)); } catch (err) {} updBar(); ctlShow(); }
+  });
+  // состояния плеера: класс playing переключает иконку ▶/❚❚
+  video.addEventListener("play", () => {
+    const pEl = video.closest(".player");
+    if (pEl) pEl.classList.add("playing");
+    ctlShow();
+  });
+  function ctlOnState() {
+    const pEl = video.closest(".player");
+    if (pEl) pEl.classList.toggle("playing", !video.paused);
+    if (video.paused) ctlShow(); // на паузе контролы видны всегда
+    else ctlShow();
+  }
+  video.addEventListener("pause", ctlOnState);
+  video.addEventListener("ended", ctlOnState);
+  video.addEventListener("loadedmetadata", () => { updBar(); });
+  seekEl.addEventListener("pointerenter", () => { clearTimeout(ctlTimer); });
+  seekEl.addEventListener("pointerleave", () => { if (!video.paused) { clearTimeout(ctlTimer); ctlTimer = setTimeout(ctlHide, 3200); } });
+  video.addEventListener("mousemove", () => { if (!video.paused) ctlShow(); });
+  video.addEventListener("mouseleave", () => { if (!video.paused) ctlHide(); });
+  window._ctlShow = ctlShow;
+  ctlShow(); // при открытии тайтла контролы видны, пока видео на паузе
   video.addEventListener("pause", savePos);
   window.addEventListener("pagehide", savePos);
   function readPos() {
@@ -1157,28 +1473,46 @@
     card.classList.remove("hidden");
     if (pv) setImg($("epImg"), "https://anilibria.top" + pv, "");
     else $("epImg").removeAttribute("src");
+    // постер кадром эпизода — до загрузки видео вместо чёрного экрана
+    if (pv) video.setAttribute("poster", "https://anilibria.top" + pv);
+    else video.removeAttribute("poster");
     $("epTitle").textContent = `Серия ${ep.ordinal}`;
     const nmEl = $("epName");
     if (nm) { nmEl.textContent = nm; nmEl.style.display = ""; }
     else nmEl.style.display = "none";
   }
 
-  // --- пропуск опенинга/эндинга ---
+  // --- пропуск опенинга/эндинга: кнопки живут поверх видео и видны только в окне ---
+  let skipWin = { op: null, ed: null }; // {op: stop, ed: {start, stop}}
   function skipToSec(sec) {
     if (sec == null) return;
     try { video.currentTime = sec; } catch (e) {}
   }
   function renderSkips(ep) {
     const op = (ep.opening && ep.opening.stop) || null;
-    const ed = (ep.ending && ep.ending.start) || null;
-    const row = $("skips");
-    const opB = $("skipOp"), edB = $("skipEd");
+    const ed = (ep.ending && ep.ending.start != null && ep.ending.stop) || null;
+    skipWin = { op: op || null, ed: ed ? { start: ep.ending.start, stop: ep.ending.stop } : null };
+    const opB = $("skipOp"), edB = $("skipEd"), row = $("skips");
     opB.style.display = op ? "" : "none";
     edB.style.display = ed ? "" : "none";
-    row.classList.toggle("hidden", !op && !ed);
-    opB.onclick = () => { skipToSec(op); };
-    edB.onclick = () => { skipToSec(ed); };
+    row.classList.remove("hidden"); // видимостью управляет updSkips через .hiding (fade)
+    row.classList.add("hiding");
+    opB.onclick = () => { skipToSec(skipWin.op); row.classList.add("hiding"); };
+    // раньше прыгали на start — эндинг доигрывал. Правильно: на stop (конец).
+    edB.onclick = () => { skipToSec(skipWin.ed ? skipWin.ed.stop : null); row.classList.add("hiding"); };
   }
+  function updSkips() {
+    if (!skipWin.op && !skipWin.ed) return;
+    const row = $("skips");
+    const t = video.currentTime || 0;
+    const inOp = !!skipWin.op && t > 0 && t < skipWin.op - 2;
+    const inEd = !!skipWin.ed && skipWin.ed.start != null && t >= skipWin.ed.start && t < skipWin.ed.stop - 1;
+    const show = !video.paused && (inOp || inEd) && !video.ended;
+    row.classList.toggle("hiding", !show);
+  }
+  video.addEventListener("timeupdate", updSkips);
+  video.addEventListener("play", updSkips);
+  video.addEventListener("pause", updSkips);
 
   // --- качество и скорость (выбор запоминается между сериями) ---
   let vQuality = "auto", vSpeed = 1;
@@ -1188,8 +1522,11 @@
     const ss = parseFloat(localStorage.getItem("ani_vs"));
     if ([1, 1.25, 1.5, 2].includes(ss)) vSpeed = ss;
   } catch (e) {}
-  $("vQuality").value = vQuality;
-  $("vSpeed").value = String(vSpeed);
+  function markSeg() {
+    document.querySelectorAll("#vQuality button").forEach(b => b.classList.toggle("active", b.dataset.q === vQuality));
+    document.querySelectorAll("#vSpeed button").forEach(b => b.classList.toggle("active", parseFloat(b.dataset.s) === vSpeed));
+  }
+  markSeg();
   function epUrl(ep) {
     const q = vQuality;
     if (q === "1080") return ep.hls_1080 || ep.hls_720 || ep.hls_480 || "";
@@ -1197,21 +1534,27 @@
     if (q === "480") return ep.hls_480 || ep.hls_720 || ep.hls_1080 || "";
     return ep.hls_1080 || ep.hls_720 || ep.hls_480 || "";
   }
-  $("vQuality").onchange = (e) => {
-    vQuality = e.target.value;
+  $("vQuality").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.q === vQuality) return;
+    vQuality = b.dataset.q;
     try { localStorage.setItem("ani_vq", vQuality); } catch (err) {}
+    markSeg();
     const t = video.currentTime;
     const ep = epsList[curIdx];
     if (ep) {
       pendingSeek = t;
-      playUrl(epUrl(ep));
+      // сохраняем состояние: если было на паузе — не запускаем само
+      playUrl(epUrl(ep), !video.paused);
     }
-  };
-  $("vSpeed").onchange = (e) => {
-    vSpeed = parseFloat(e.target.value) || 1;
+  });
+  $("vSpeed").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    vSpeed = parseFloat(b.dataset.s) || 1;
     try { localStorage.setItem("ani_vs", String(vSpeed)); } catch (err) {}
     video.playbackRate = vSpeed;
-  };
+    markSeg();
+  });
   // применяем скорость при каждом новом источнике
   video.addEventListener("loadedmetadata", () => { video.playbackRate = vSpeed; });
   let contDirty = true;
@@ -1294,20 +1637,35 @@
   async function loadDubs(shikimoriId, curR) {
     const row = $("dubchips");
     row.innerHTML = "";
+    row.classList.add("hidden");
     // текущая озвучка — всегда первый чип
     const cur = document.createElement("button");
-    cur.textContent = "Anilibria";
+    cur.textContent = "AniLiberty · текущая";
     cur.className = "active";
     cur.onclick = () => {};
     row.appendChild(cur);
-    if (!shikimoriId) return; // без shiki-id нечего сопоставлять, оставляем один чип
+    const requestedId = String(curR?.id || releaseId);
+    const requestedShiki = shikimoriId ? String(shikimoriId) : "";
+    const names = [curR?.name?.english, curR?.name?.main, curR?.name?.alternative, title]
+      .filter(Boolean).map(x => String(x).split(":")[0].trim()).filter((x, i, a) => x && a.indexOf(x) === i);
+    const found = new Map();
     try {
-      const baseName = (curR?.name?.english || "").split(":")[0].trim() || title;
-      const j = await cj(`${API}/anime/catalog/releases?f[search]=${encodeURIComponent(baseName)}&page=1&limit=10`);
-      const items = (j.data || []).filter(r => r.id !== releaseId && (r.shikimori?.id === shikimoriId));
+      // Поиск по нескольким вариантам названия, больше результатов; фильтруем по Shikimori до показа.
+      for (const name of names.slice(0, 3)) {
+        const j = await cj(`${API}/anime/catalog/releases?f[search]=${encodeURIComponent(name)}&page=1&limit=50`);
+        for (const r of (j.data || [])) {
+          if (String(r.id) !== requestedId && requestedShiki && String(r.shikimori?.id || "") === requestedShiki) found.set(String(r.id), r);
+        }
+      }
+    } catch (e) { /* сохраняем хотя бы текущий релиз */ }
+    if (String(releaseId) !== requestedId) return;
+    const items = [...found.values()];
+    if (items.length) {
+      row.classList.remove("hidden");
+      row.setAttribute("aria-label", "Доступные озвучки");
       items.forEach(r => {
         const b = document.createElement("button");
-        b.textContent = dubLabel(r, items.length);
+        b.textContent = dubLabel(r);
         b.onclick = async () => {
           if (b.classList.contains("active")) return;
           row.querySelectorAll("button").forEach(x => x.classList.remove("active"));
@@ -1316,19 +1674,19 @@
         };
         row.appendChild(b);
       });
-    } catch (e) { /* тихо: останется хотя бы чип Anilibria */ }
+    }
   }
-  function dubLabel(r, n) {
-    // Anilibria не отдает имена команд озвучки отдельными полями,
-    // поэтому показываем год как различитель, если названий несколько
-    const t = r.name?.main || r.name?.english || "Озвучка";
-    if (n <= 1) return t.length > 24 ? t.slice(0, 24) + "…" : t;
-    const suf = r.year ? ` (${r.year})` : "";
-    const short = t.length > 18 ? t.slice(0, 18) + "…" : t;
-    return short + suf;
+  function dubLabel(r) {
+    const t = r.name?.main || r.name?.english || "Альтернативный релиз";
+    const name = t.length > 26 ? t.slice(0, 26) + "…" : t;
+    return r.year ? `${name} · ${r.year}` : name;
   }
   async function switchRelease(newId) {
+    const resume = epsList[curIdx] ? { ep: epsList[curIdx].ordinal, t: Math.floor(video.currentTime || 0) } : null;
     savePos();
+    if (resume) {
+      try { localStorage.setItem("pos:" + newId, JSON.stringify(resume)); } catch (e) {}
+    }
     await openTitle(newId);
   }
 
@@ -1351,6 +1709,70 @@
   };
   $("netVk").onclick = () => {
     window.open("https://vk.com/video?q=" + encodeURIComponent(netQuery()), "_blank", "noopener");
+  };
+  $("netVost").onclick = () => {
+    const q = `${title} ${epsList[curIdx] ? epsList[curIdx].ordinal + " серия" : ""}`.trim();
+    window.open("https://v14.vost.pw/index.php?do=search&subaction=search&story=" + encodeURIComponent(q), "_blank", "noopener");
+  };
+  $("netWeb").onclick = () => {
+    window.open("https://www.google.com/search?q=" + encodeURIComponent(netQuery()), "_blank", "noopener");
+  };
+  // --- первоисточник: манга/манхва/маньхуа по названию тайтла ---
+  function srcQuery() {
+    const n = (curRelease && curRelease.name) || {};
+    return n.main || n.romaji || n.english || title || "";
+  }
+  let mangaReturnPending = false;
+  let mangaReturnQuery = "";
+  let mangaDialogMode = "question";
+  function showMangaDialog(mode) {
+    mangaDialogMode = mode;
+    const box = $("mangaDialog");
+    box.querySelector(".cat-art").classList.toggle("hidden", mode !== "cat");
+    $("mangaDialogTitle").textContent = mode === "question" ? "Удалось найти мангу?" : "Не удалось найти мангу?";
+    box.querySelector("p").textContent = mode === "question"
+      ? "Если на сайте нет подходящего первоисточника, возможно, манга называется иначе, чем аниме."
+      : "Возможно, у первоисточника другое название. Попробуй поискать по английскому названию или в интернете.";
+    $("mangaWebSearch").textContent = mode === "question" ? "Не нашёл — покажи котика" : "Поискать в интернете";
+    box.classList.remove("hidden");
+    $("mangaWebSearch").focus();
+  }
+  function closeMangaDialog() { $("mangaDialog").classList.add("hidden"); }
+  function openMangaSearch(url, q) {
+    const tab = window.open(url, "_blank");
+    if (!tab) { toast("Разреши открытие новой вкладки и попробуй ещё раз"); return; }
+    try { tab.opener = null; } catch (e) {}
+    mangaReturnQuery = q;
+    mangaReturnPending = true;
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && mangaReturnPending) {
+      mangaReturnPending = false;
+      showMangaDialog("question");
+    }
+  });
+  window.addEventListener("focus", () => {
+    if (!mangaReturnPending) return;
+    mangaReturnPending = false;
+    showMangaDialog("question");
+  });
+  $("mangaWebSearch").onclick = () => {
+    if (mangaDialogMode === "question") { showMangaDialog("cat"); return; }
+    closeMangaDialog();
+    window.open("https://www.google.com/search?q=" + encodeURIComponent(mangaReturnQuery || srcQuery()), "_blank", "noopener");
+  };
+  $("mangaDialogClose").onclick = closeMangaDialog;
+  $("mangaDialog").addEventListener("click", e => { if (e.target === $("mangaDialog")) closeMangaDialog(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeMangaDialog(); });
+  $("mgRm").onclick = () => {
+    const q = srcQuery().trim();
+    if (!q) { toast("Название не найдено"); return; }
+    openMangaSearch("https://remanga.org/search?field=titles&query=" + encodeURIComponent(q), q);
+  };
+  $("mgMl").onclick = () => {
+    const q = srcQuery().trim();
+    if (!q) { toast("Название не найдено"); return; }
+    openMangaSearch("https://mangalib.me/ru/catalog?q=" + encodeURIComponent(q), q);
   };
 
   async function loadGo() {
@@ -1391,6 +1813,8 @@
   }
 
   async function openTitle(id) {
+    if (releaseId && epsList.length) savePos();
+    sourceChanging = true;
     nav("title");
     showTab("A");
     box.innerHTML = '<div class="warn">Загрузка серий…</div>';
@@ -1405,6 +1829,7 @@
         cj(`${API}/anime/releases/${id}?include=genres`, 3600000).catch(() => ({})),
       ]);
     } catch (e) {
+      sourceChanging = false;
       box.innerHTML = '<div class="warn">Не загрузилось: ' + (e && e.message || e) + '. Проверь интернет и открой заново.</div>';
       return;
     }
@@ -1427,11 +1852,19 @@
     if (curRelease.year) chips.push(curRelease.year);
     if (curRelease.type) chips.push(curRelease.type.description || curRelease.type.value);
     const sh = curRelease.shikimori || {};
-    if (sh.rating) chips.push("★ " + sh.rating);
+    if (sh.rating) chips.push({ star: sh.rating });
     const genres = (gRes.genres || []).slice(0, 4).map(g => g.name).filter(Boolean);
     $("t-chips").innerHTML = "";
     chips.concat(genres).filter(Boolean).forEach(c => {
-      const s = document.createElement("span"); s.textContent = c; $("t-chips").appendChild(s);
+      const s = document.createElement("span");
+      if (typeof c === "object" && c && c.star) {
+        s.className = "rate";
+        s.innerHTML = '<i class="ic i-star"></i>';
+        s.appendChild(document.createTextNode(" " + c.star));
+      } else {
+        s.textContent = c;
+      }
+      $("t-chips").appendChild(s);
     });
     // актуальные факты: год, сезон, тип, статус, всего серий, в озвучке
     const season = curRelease.season && curRelease.season.description
@@ -1488,6 +1921,7 @@
       }
     };
     if (!epsList.length) {
+      sourceChanging = false;
       box.innerHTML = '<div class="warn">Серий в Anilibria пока нет — открой вкладку «Все серии».</div>';
       $("contBtn").classList.add("hidden");
     } else {
@@ -1495,14 +1929,17 @@
       // продолжение с той же секунды, если раньше смотрели
       const pos = readPos();
       const pi = pos ? epsList.findIndex(e => e.ordinal === pos.ep) : -1;
-      if (pos && pi >= 0 && (pi > 0 || pos.t > 20)) {
+      if (pos && pi >= 0) {
         const cb = $("contBtn");
-        cb.textContent = `Продолжить: серия ${pos.ep} · ${fmtT(pos.t)}`;
+        cb.textContent = `Продолжить: серия ${pos.ep} из ${curRelease.episodes_total || epsList.length} · ${fmtT(pos.t)}`;
         cb.classList.remove("hidden");
-        cb.onclick = () => { pendingSeek = pos.t; playIdx(pi); cb.classList.add("hidden"); };
+        pendingSeek = Math.max(0, pos.t || 0);
+        curIdx = pi; // не сохраняем старую позицию серии 1 поверх восстановленной
+        playIdx(pi, false);
+        cb.onclick = () => { pendingSeek = Math.max(0, pos.t || 0); playIdx(pi, true); cb.classList.add("hidden"); };
       } else {
         $("contBtn").classList.add("hidden");
-        playIdx(0);
+        playIdx(0, false); // не включаем серию саму — ждем play от пользователя
       }
     }
     hideBoot();
