@@ -17,6 +17,8 @@
     --muted: #848895; --acc: #7c5cf0; --acc-soft: rgba(124,92,240,.16); --line: rgba(255,255,255,.10);
     --radius: 12px; --pad: 12px;
     --ease-out: cubic-bezier(.23,1,.32,1);
+    --grad: linear-gradient(135deg, var(--acc), #b388ff);
+    --shadow: 0 8px 24px rgba(0,0,0,.45);
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -33,17 +35,22 @@
   .wrap { max-width: 720px; margin: 0 auto; padding: 0 var(--pad); }
   .view.hidden, .hidden { display: none !important; }
 
+  .view { animation: viewIn 220ms var(--ease-out); }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .view { animation: none; } }
+
   .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 0 4px; }
-  .logo { font-weight: 800; font-size: 16px; letter-spacing: .2px; }
-  .logo span { color: var(--acc); }
+  .logo { font-weight: 800; font-size: 17px; letter-spacing: .2px; }
+  .logo span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .back {
     background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 10px; min-width: 38px; min-height: 38px; font-size: 16px;
   }
   .back:active { transform: scale(.94); }
 
-  .sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 6px; }
-  .sec-head b { font-size: 14.5px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 2px 8px; }
+  .sec-head b { font-size: 15px; letter-spacing: .1px; display: flex; align-items: center; gap: 7px; }
+  .sec-head b::before { content: ""; width: 3px; height: 14px; border-radius: 999px; background: var(--grad); }
   .sec-head button { background: none; border: 0; color: var(--acc); font-size: 12.5px; font-weight: 700; padding: 4px 2px; }
   .hero { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 0 0 6px;
     scroll-snap-type: x mandatory; scrollbar-width: none;
@@ -52,21 +59,36 @@
   .hero .card { scroll-snap-align: start; flex: 0 0 148px; position: relative; }
   .hero img { height: 202px; }
   .hero-btn { display: inline-flex; align-items: center; gap: 2px; }
+  /* hero-баннер топ-1 */
+  #feat { position: relative; border-radius: 16px; overflow: hidden; margin: 6px 0 2px;
+    min-height: 190px; display: flex; align-items: flex-end; border: 1px solid var(--line); box-shadow: var(--shadow); }
+  #featImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .feat-grad { position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(11,10,16,.05) 20%, rgba(11,10,16,.72) 62%, rgba(11,10,16,.96)); }
+  .feat-info { position: relative; padding: 14px; width: 100%; }
+  .feat-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #c9b8ff; }
+  .feat-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin: 3px 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .feat-meta { font-size: 12px; color: rgba(255,255,255,.75); margin-bottom: 10px; }
+  .feat-btn { border: 0; border-radius: 12px; padding: 10px 22px; font-size: 13.5px; font-weight: 800; color: #fff;
+    background: var(--grad); box-shadow: 0 4px 16px rgba(124,92,240,.45); }
+  .feat-btn:active { transform: scale(.96); }
   .prog { position: absolute; left: 6px; right: 6px; bottom: 44px; height: 3px; border-radius: 999px;
     background: rgba(255,255,255,.25); overflow: hidden; }
   .prog span { display: block; height: 100%; background: var(--acc); border-radius: 999px; }
   .cont-tag { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 700;
     background: rgba(0,0,0,.62); border: 1px solid var(--line); border-radius: 8px; padding: 2px 7px; }
   .badge {
-    position: absolute; top: 6px; left: 6px; font-size: 11px; font-weight: 700;
-    background: rgba(0,0,0,.62); border: 1px solid var(--line); border-radius: 8px; padding: 2px 7px;
+    position: absolute; top: 6px; left: 6px; font-size: 11px; font-weight: 700; color: #ffd98a;
+    background: rgba(0,0,0,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,217,138,.35); border-radius: 8px; padding: 2px 7px;
   }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
   @media (min-width: 560px) { .grid { grid-template-columns: repeat(4, 1fr); } }
   .card { background: none; border: 0; padding: 0; text-align: left; color: var(--txt); position: relative; }
   .card img {
-    width: 100%; height: 158px; object-fit: cover; border-radius: 10px; background: var(--card);
-    border: 1px solid var(--line);
+    width: 100%; height: 158px; object-fit: cover; border-radius: 14px; background: var(--card);
+    border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.35);
   }
   .card .t { font-size: 11.5px; font-weight: 600; margin-top: 4px;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -132,19 +154,11 @@
   .tabs button {
     flex: 1; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 10px; padding: 8px 6px; font-size: 13px; font-weight: 600; min-height: 40px;
-    position: relative; overflow: hidden;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
-  }
-  .tabs button::before {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(135deg, var(--acc), #b388ff);
-    opacity: 0; transition: opacity 180ms var(--ease-out);
-    border-radius: 10px;
   }
   .tabs button:hover { border-color: var(--acc); }
   .tabs button:active { transform: scale(.95); }
-  .tabs button.active { background: var(--acc); border-color: var(--acc); }
-  .tabs button.active::before { opacity: 1; }
+  .tabs button.active { background: var(--grad); border-color: transparent; }
   .tabs button:active, #eps button:active, .pager button:active { transform: scale(.95); }
   @media (hover: hover) and (pointer: fine) {
     .tabs button:hover, #eps button:hover, .pager button:hover, .more-btn:hover { filter: brightness(1.15); }
@@ -154,6 +168,13 @@
   .eps-head { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 2px 4px; }
   .eps-head b { font-size: 12.5px; }
   .eps-head span { font-size: 11.5px; color: var(--muted); }
+  .epcard { display: flex; gap: 10px; align-items: center; background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px; padding: 8px; margin: 2px 0 4px; }
+  .epcard img { width: 96px; height: 54px; object-fit: cover; border-radius: 8px; background: var(--btn); flex: 0 0 auto; }
+  .epcard div { min-width: 0; }
+  .epcard b { display: block; font-size: 13px; }
+  .epcard span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .pager { display: flex; align-items: center; gap: 6px; padding: 0 0 6px; }
   .pager button {
     background: var(--btn); color: var(--txt); border: 1px solid var(--line);
@@ -200,28 +221,35 @@
     border: 3px solid rgba(255,255,255,.25); border-top-color: #fff;
     animation: spin .9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .gchips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; touch-action: pan-y; }
-  .gchips::-webkit-scrollbar { display: none; }
+  #gestInd { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 7; font-size: 15px; font-weight: 800; color: #fff; white-space: nowrap;
+    background: rgba(0,0,0,.68); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 18px; pointer-events: none; }
+  .nextup { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
+    gap: 8px; align-items: center; justify-content: center; text-align: center; padding: 12px;
+    background: rgba(5,5,10,.8); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    border-radius: 12px; }
+  .nextup b { font-size: 14px; }
+  .nextup .nnum { font-size: 30px; font-weight: 800; line-height: 1; }
+  .nextup .ninfo { font-size: 12px; color: var(--muted); }
+  .nextup .nrow { display: flex; gap: 8px; }
+  .nextup button { background: var(--acc); color: #fff; border: 0; border-radius: 10px;
+    min-height: 40px; padding: 0 18px; font-size: 13px; font-weight: 700; }
+  .nextup button.ghost { background: var(--btn); border: 1px solid var(--line); }
+  .nextup button:active { transform: scale(.95); }
   .gchips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; touch-action: pan-y; }
   .gchips::-webkit-scrollbar { display: none; }
   .gchips button {
     flex: 0 0 auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
-    position: relative; overflow: hidden;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
-  }
-  .gchips button::before {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(135deg, var(--acc), #b388ff);
-    opacity: 0; transition: opacity 180ms var(--ease-out);
-    border-radius: 999px;
   }
   .gchips button:hover { border-color: var(--acc); }
   .gchips button:active { transform: scale(.96); }
   .gchips button.active {
-    background: var(--acc); border-color: var(--acc); color: #fff;
+    background: var(--grad); border-color: transparent; color: #fff;
+    box-shadow: 0 4px 14px rgba(124,92,240,.4);
   }
-  .gchips button.active::before { opacity: 1; }
   .lucky { margin-left: auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
@@ -235,21 +263,14 @@
   .dubchips button {
     flex: 0 0 auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
-    position: relative; overflow: hidden;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
-  }
-  .dubchips button::before {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(135deg, var(--acc), #b388ff);
-    opacity: 0; transition: opacity 180ms var(--ease-out);
-    border-radius: 999px;
   }
   .dubchips button:hover { border-color: var(--acc); }
   .dubchips button:active { transform: scale(.96); }
   .dubchips button.active {
-    background: var(--acc); border-color: var(--acc); color: #fff;
+    background: var(--grad); border-color: transparent; color: #fff;
+    box-shadow: 0 4px 14px rgba(124,92,240,.4);
   }
-  .dubchips button.active::before { opacity: 1; }
   .lucky { margin-left: auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
@@ -289,12 +310,11 @@
   }
 
   .navbar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    background: var(--bg);
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 10;
+    background: rgba(20,19,26,.82);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow);
+    padding-bottom: 0;
   }
   .navbar .in { max-width: 720px; margin: 0 auto; display: flex; }
   .navbar button {
@@ -304,6 +324,13 @@
   }
   .navbar button svg { width: 21px; height: 21px; }
   .navbar button.active { color: var(--txt); }
+  .navbar button.active svg { filter: drop-shadow(0 0 6px rgba(124,92,240,.8)); }
+  /* фон-постер в шапке тайтла */
+  #t-back { position: absolute; top: 0; left: 0; right: 0; height: 210px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent); mask-image: linear-gradient(180deg, #000 30%, transparent); }
+  #t-back img { width: 100%; height: 100%; object-fit: cover; filter: blur(18px) brightness(.55); transform: scale(1.15); }
+  #view-title { position: relative; }
+  #view-title .topbar, #view-title .title-head { position: relative; }
   .toast {
     position: fixed; left: 12px; right: 12px; bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     z-index: 50; background: #2a1f1f; color: #ffd9d9; border: 1px solid rgba(255,120,120,.35);
@@ -325,6 +352,16 @@
   <!-- ГЛАВНАЯ -->
   <div class="view" id="view-home">
     <div class="topbar"><div class="logo">Ani<span>Catalog</span></div><button class="lucky" id="lucky">Random</button></div>
+    <div id="feat" class="hidden">
+      <img id="featImg" alt="" />
+      <div class="feat-grad"></div>
+      <div class="feat-info">
+        <div class="feat-kicker">Топ недели • №1</div>
+        <div class="feat-title" id="featTitle"></div>
+        <div class="feat-meta" id="featMeta"></div>
+        <button class="feat-btn" id="featBtn">Смотреть</button>
+      </div>
+    </div>
     <div class="gchips hidden" id="gchips"></div>
     <div class="row" style="padding:2px 0 8px"><button class="more-btn" id="btnSched" style="margin:0">Расписание онгоингов</button></div>
     <div id="contSec" class="hidden">
@@ -369,12 +406,14 @@
       <input id="q" placeholder="Название аниме…" enterkeyhint="search" autocomplete="off" />
       <button id="qGo" aria-label="Найти">Найти</button>
     </div>
+    <div class="gchips hidden" id="histRow"></div>
     <div class="grid" id="grid-search"></div>
     <div class="warn hidden" id="searchHint">Введи название — ищет по каталогу Anilibria.</div>
   </div>
 
   <!-- ТАЙТЛ -->
   <div class="view hidden" id="view-title">
+    <div id="t-back"></div>
     <div class="topbar"><button class="back" id="backBtn" aria-label="Назад">‹</button><div class="logo" id="t-crumb">Тайтл</div></div>
     <div class="title-head">
       <img id="t-poster" alt="" loading="lazy" />
@@ -397,7 +436,8 @@
     </div>
     <div id="paneA">
       <button class="cont-btn hidden" id="contBtn"></button>
-      <div class="player"><video id="v" controls playsinline preload="metadata"></video><div class="vspin hidden" id="vspin"><span></span></div></div>
+      <div class="player"><video id="v" controls playsinline preload="metadata"></video><div class="vspin hidden" id="vspin"><span></span></div><div id="gestInd" class="hidden"></div><div class="nextup hidden" id="nextUp"><b>Следующая серия через</b><div class="nnum" id="nextN">5</div><div class="ninfo" id="nextInfo"></div><div class="nrow"><button id="nextGo">Смотреть</button><button id="nextCancel" class="ghost">Отмена</button></div></div></div>
+      <div class="epcard hidden" id="epCard"><img id="epImg" alt="" /><div><b id="epTitle"></b><span id="epName"></span></div></div>
       <div class="eps-head"><b>Серии</b><span id="epsInfo"></span></div>
       <div class="skips hidden" id="skips">
         <button id="skipOp">Пропустить опенинг</button>
@@ -462,6 +502,15 @@
     return src ? "https://anilibria.top" + src : "";
   };
   const titleOf = (r) => (r.name && (r.name.main || r.name.english)) || "Без названия";
+  const POSTER_PH = "data:image/svg+xml," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420"><rect width="300" height="420" rx="24" fill="#1d1c26"/><g fill="none" stroke="#7c5cf0" stroke-width="10"><circle cx="150" cy="180" r="52"/><path d="M138 152l44 28-44 28z" fill="#7c5cf0" stroke="none"/></g><text x="150" y="290" text-anchor="middle" font-family="sans-serif" font-size="26" font-weight="bold" fill="#848895">AniCatalog</text></svg>`
+  );
+  function setImg(img, src, alt) {
+    img.alt = alt || "";
+    img.onerror = () => { if (!img.dataset.ph && src) { img.dataset.ph = "1"; img.src = POSTER_PH; } };
+    if (src) img.src = src;
+    else { img.dataset.ph = "1"; img.src = POSTER_PH; }
+  }
 
   // --- навигация ---
   const views = { home: $("view-home"), list: $("view-list"), sched: $("view-sched"), search: $("view-search"), title: $("view-title"), favs: $("view-favs") };  let lastList = "home";
@@ -514,7 +563,7 @@
     const b = document.createElement("button");
     b.className = "card";
     const img = document.createElement("img");
-    img.loading = "lazy"; img.alt = titleOf(r); img.src = posterOf(r);
+    img.loading = "lazy"; setImg(img, posterOf(r), titleOf(r));
     b.appendChild(img);
     const sh = r.shikimori || {};
     if (sh.rating) {
@@ -612,6 +661,18 @@
     const frag = document.createDocumentFragment();
     latest.slice(0, 8).forEach(r => frag.appendChild(cardEl(r, true)));
     hero.appendChild(frag);
+    // hero-баннер: топ-1 из новинок недели
+    try {
+      const f = latest[0];
+      if (f) {
+        const sh = f.shikimori || {};
+        setImg($("featImg"), posterOf(f, "big"), titleOf(f));
+        $("featTitle").textContent = titleOf(f);
+        $("featMeta").textContent = [f.year, sh.rating ? "★ " + sh.rating : "", f.is_ongoing ? "онгоинг" : ""].filter(Boolean).join(" • ");
+        $("featBtn").onclick = () => openTitle(f.id);
+        $("feat").classList.remove("hidden");
+      }
+    } catch (e) { $("feat").classList.add("hidden"); }
     fillGrid($("grid-new"), n2026);
     fillGrid($("grid-ongoing"), ongo);
     fillGrid($("grid-top"), top);
@@ -788,7 +849,38 @@
     finally { btn.disabled = false; }
   };
   let searchTimer = null, searchCtl = null;
-  async function doSearch(query) {
+  function loadHist() {
+    try {
+      const h = JSON.parse(localStorage.getItem("ani_hq") || "[]");
+      return Array.isArray(h) ? h.filter((x) => typeof x === "string").slice(0, 8) : [];
+    } catch (e) { return []; }
+  }
+  function saveHist(q) {
+    q = (q || "").trim();
+    if (q.length < 2) return;
+    try {
+      const low = q.toLowerCase();
+      const h = loadHist().filter((x) => x.toLowerCase() !== low);
+      h.unshift(q);
+      localStorage.setItem("ani_hq", JSON.stringify(h.slice(0, 8)));
+    } catch (e) {}
+    renderHist();
+  }
+  function renderHist() {
+    const row = $("histRow");
+    const h = loadHist();
+    row.innerHTML = "";
+    if (!h.length) { row.classList.add("hidden"); return; }
+    row.classList.remove("hidden");
+    h.forEach((q) => {
+      const b = document.createElement("button");
+      b.textContent = q;
+      b.onclick = () => { $("q").value = q; doSearch(q); };
+      row.appendChild(b);
+    });
+  }
+  renderHist();
+  async function doSearch(query, save) {
     const grid = $("grid-search"), hint = $("searchHint");
     query = (query || "").trim();
     if (query.length < 2) { grid.innerHTML = ""; hint.classList.remove("hidden"); return; }
@@ -804,6 +896,7 @@
       const items = j.data || [];
       if (!items.length) { grid.innerHTML = '<div class="warn">Ничего не найдено.</div>'; return; }
       fillGrid(grid, items);
+      if (save) saveHist(query);
     } catch (e) {
       if (e && e.name === "AbortError") return;
       grid.innerHTML = '<div class="warn">Ошибка поиска.</div>';
@@ -813,8 +906,8 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => doSearch(e.target.value), 400);
   });
-  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(e.target.value); });
-  $("qGo").onclick = () => doSearch($("q").value);
+  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(e.target.value, true); });
+  $("qGo").onclick = () => doSearch($("q").value, true);
 
   // --- избранное: CloudStorage в TG + зеркало в localStorage ---
   // зеркало нужно потому что CloudStorage на части клиентов висит без ответа —
@@ -924,9 +1017,11 @@
   function showSpin(on) { $("vspin").classList.toggle("hidden", !on); }
   function playIdx(i) {
     if (i < 0 || i >= epsList.length) return;
+    stopNext();
     curIdx = i; page = Math.floor(i / PAGE); renderPage();
     const ep = epsList[i];
     $("epsInfo").textContent = `Серия ${ep.ordinal} / ${epsList.length}`;
+    renderEpCard(ep);
     renderSkips(ep);
     playUrl(epUrl(ep));
     if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} }
@@ -954,10 +1049,79 @@
   }
   $("pgPrev").onclick = () => { const n = Math.ceil(epsList.length / PAGE); page = (page - 1 + n) % n; renderPage(); };
   $("pgNext").onclick = () => { const n = Math.ceil(epsList.length / PAGE); page = (page + 1) % n; renderPage(); };
-  video.addEventListener("ended", () => { if (curIdx + 1 < epsList.length) playIdx(curIdx + 1); });
+  let nextTimer = null;
+  function stopNext() {
+    if (nextTimer) { clearInterval(nextTimer); nextTimer = null; }
+    $("nextUp").classList.add("hidden");
+  }
+  video.addEventListener("ended", () => {
+    if (curIdx + 1 >= epsList.length) return;
+    stopNext();
+    const nx = epsList[curIdx + 1];
+    let n = 5;
+    $("nextN").textContent = n;
+    $("nextInfo").textContent = `Серия ${nx.ordinal}` + (nx.name ? ` — ${nx.name}` : "");
+    $("nextUp").classList.remove("hidden");
+    nextTimer = setInterval(() => {
+      n -= 1;
+      if (n <= 0) { stopNext(); playIdx(curIdx + 1); }
+      else $("nextN").textContent = n;
+    }, 1000);
+  });
+  $("nextGo").onclick = () => { stopNext(); if (curIdx + 1 < epsList.length) playIdx(curIdx + 1); };
+  $("nextCancel").onclick = stopNext;
   video.addEventListener("waiting", () => showSpin(true));
   video.addEventListener("playing", () => showSpin(false));
   video.addEventListener("error", () => { showSpin(false); });
+  // --- жесты: дабл-тап ±10 сек, вертикальный свайп — громкость ---
+  function gestShow(txt) {
+    const g = $("gestInd");
+    g.textContent = txt;
+    g.classList.remove("hidden");
+    clearTimeout(g._h);
+    g._h = setTimeout(() => g.classList.add("hidden"), 800);
+  }
+  let lastTap = 0, volStartY = 0, volStart = 1, volMoved = false;
+  video.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    volStartY = t.clientY; volStart = video.volume; volMoved = false;
+  }, { passive: true });
+  video.addEventListener("touchmove", (e) => {
+    const dy = volStartY - e.touches[0].clientY;
+    if (Math.abs(dy) > 24) {
+      volMoved = true;
+      video.volume = Math.min(1, Math.max(0, volStart + dy / 200));
+      gestShow("Громкость " + Math.round(video.volume * 100) + "%");
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+  video.addEventListener("touchend", (e) => {
+    if (volMoved) return; // это был свайп громкости, не тап
+    const now = Date.now();
+    const x = (e.changedTouches[0] || {}).clientX || 0;
+    const rect = video.getBoundingClientRect();
+    if (now - lastTap < 300) {
+      lastTap = 0;
+      if (x < rect.left + rect.width * 0.35) {
+        try { video.currentTime = Math.max(0, video.currentTime - 10); } catch (err) {}
+        gestShow("−10 сек");
+      } else if (x > rect.left + rect.width * 0.65) {
+        try { video.currentTime = video.currentTime + 10; } catch (err) {}
+        gestShow("+10 сек");
+      }
+      // середина — отдаем нативным контролам
+    } else { lastTap = now; }
+  });
+  video.addEventListener("dblclick", (e) => {
+    const rect = video.getBoundingClientRect();
+    if (e.clientX < rect.left + rect.width * 0.35) {
+      try { video.currentTime = Math.max(0, video.currentTime - 10); } catch (err) {}
+      gestShow("−10 сек");
+    } else if (e.clientX > rect.left + rect.width * 0.65) {
+      try { video.currentTime = video.currentTime + 10; } catch (err) {}
+      gestShow("+10 сек");
+    }
+  });
   // позиция просмотра: запоминаем серию и секунду (пока локально, позже — синк на свой сервер)
   function posKey(id) { return "pos:" + (id || releaseId); }
   function savePos() {
@@ -984,6 +1148,21 @@
     return m + ":" + String(ss).padStart(2, "0");
   }
 
+  // --- карточка текущей серии: превью + название ---
+  function renderEpCard(ep) {
+    const card = $("epCard");
+    const pv = ((ep.preview || {}).src || (ep.preview || {}).preview || "");
+    const nm = ep.name || ep.name_english || "";
+    if (!pv && !nm) { card.classList.add("hidden"); return; }
+    card.classList.remove("hidden");
+    if (pv) setImg($("epImg"), "https://anilibria.top" + pv, "");
+    else $("epImg").removeAttribute("src");
+    $("epTitle").textContent = `Серия ${ep.ordinal}`;
+    const nmEl = $("epName");
+    if (nm) { nmEl.textContent = nm; nmEl.style.display = ""; }
+    else nmEl.style.display = "none";
+  }
+
   // --- пропуск опенинга/эндинга ---
   function skipToSec(sec) {
     if (sec == null) return;
@@ -1001,8 +1180,16 @@
     edB.onclick = () => { skipToSec(ed); };
   }
 
-  // --- качество и скорость ---
+  // --- качество и скорость (выбор запоминается между сериями) ---
   let vQuality = "auto", vSpeed = 1;
+  try {
+    const sq = localStorage.getItem("ani_vq");
+    if (["auto", "1080", "720", "480"].includes(sq)) vQuality = sq;
+    const ss = parseFloat(localStorage.getItem("ani_vs"));
+    if ([1, 1.25, 1.5, 2].includes(ss)) vSpeed = ss;
+  } catch (e) {}
+  $("vQuality").value = vQuality;
+  $("vSpeed").value = String(vSpeed);
   function epUrl(ep) {
     const q = vQuality;
     if (q === "1080") return ep.hls_1080 || ep.hls_720 || ep.hls_480 || "";
@@ -1012,6 +1199,7 @@
   }
   $("vQuality").onchange = (e) => {
     vQuality = e.target.value;
+    try { localStorage.setItem("ani_vq", vQuality); } catch (err) {}
     const t = video.currentTime;
     const ep = epsList[curIdx];
     if (ep) {
@@ -1021,6 +1209,7 @@
   };
   $("vSpeed").onchange = (e) => {
     vSpeed = parseFloat(e.target.value) || 1;
+    try { localStorage.setItem("ani_vs", String(vSpeed)); } catch (err) {}
     video.playbackRate = vSpeed;
   };
   // применяем скорость при каждом новом источнике
@@ -1227,7 +1416,13 @@
     $("t-crumb").textContent = t.length > 26 ? t.slice(0, 26) + "…" : t;
     $("t-name").textContent = t;
     const big = posterOf(curRelease, "big");
-    if (big) { $("t-poster").src = big; $("t-poster").alt = t; }
+    if (big) {
+      setImg($("t-poster"), big, t);
+      $("t-back").innerHTML = "";
+      const bg = document.createElement("img");
+      bg.loading = "lazy"; setImg(bg, big, "");
+      $("t-back").appendChild(bg);
+    } else { $("t-back").innerHTML = ""; }
     const chips = [];
     if (curRelease.year) chips.push(curRelease.year);
     if (curRelease.type) chips.push(curRelease.type.description || curRelease.type.value);

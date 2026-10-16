@@ -24,3 +24,4 @@ anime-telegram-bot/data/*
 !anime-telegram-bot/data/posted.json
 !anime-telegram-bot/data/subscriptions.json
 !anime-telegram-bot/data/epcounts.json
+!anime-telegram-bot/data/tracked.json

@@ -25,3 +25,24 @@ def save_posted_ids(path: str, ids: set[int]) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(sorted(ids), f, ensure_ascii=False, indent=1)
         f.write("\n")
+
+
+def load_tracked(path: str) -> dict[str, dict]:
+    """Онгоинги под наблюдением: {"rid": {title, year, type, count}}.
+    Отдельно от posted.json: тот — «что уже постили как новинку»,
+    этот — «за какими сериями следим». Оба коммитятся обратно в Actions."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, ValueError, TypeError, AttributeError):
+        return {}
+
+
+def save_tracked(path: str, tracked: dict[str, dict]) -> None:
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(tracked, f, ensure_ascii=False, indent=1)
+        f.write("\n")
