@@ -1225,6 +1225,13 @@
         if (!data || !data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsRetry < 2) {
           hlsRetry += 1;
+          // Некоторые блокировщики рекламы режут URL с параметрами вида isWithVideoAds.
+          // Вторая попытка — на тот же адрес, третья — без query совсем: серверу эти
+          // параметры не нужны, а без них URL выглядит безобидно.
+          if (hlsRetry === 2 && hls.url && hls.url.includes("?")) {
+            const clean = hls.url.split("?")[0];
+            try { hls.loadSource(clean); hls.startLoad(); return; } catch (e) {}
+          }
           try { hls.startLoad(); return; } catch (e) {}
         }
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsRetry < 2) {
