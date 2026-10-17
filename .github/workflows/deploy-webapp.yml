@@ -1,0 +1,57 @@
+name: deploy-webapp
+
+# Ручной запуск: Actions → deploy-webapp → Run workflow.
+# Автоматически не срабатывает, чтобы случайный push не перезаписал прод.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-webapp
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Проверить, что секреты заданы
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::error::Добавь секреты CLOUDFLARE_API_TOKEN и CLOUDFLARE_ACCOUNT_ID в Settings → Secrets."
+            exit 1
+          fi
+
+      - name: Проверить синтаксис инлайн-JS
+        run: |
+          python3 - <<'PY'
+          import re, subprocess, sys, tempfile, os
+          html = open("anime-telegram-bot/webapp/index.html", encoding="utf-8").read()
+          blocks = re.findall(r"(?s)<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", html)
+          d = tempfile.mkdtemp()
+          for i, b in enumerate(blocks):
+              p = os.path.join(d, f"b{i}.js")
+              open(p, "w", encoding="utf-8").write(b)
+              r = subprocess.run(["node", "--check", p])
+              sys.exit(r.returncode)
+          print(f"checked {len(blocks)} block(s)")
+          PY
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: anime-telegram-bot/webapp
+          command: deploy

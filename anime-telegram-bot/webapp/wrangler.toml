@@ -1,0 +1,9 @@
+name = "anime-webapp"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+# WebApp — обычная статика: index.html + ассеты из этой папки.
+# Деплой: npx wrangler deploy (из папки webapp) либо GitHub Actions.
+[assets]
+directory = "."
+not_found_handling = "single-page-application"
