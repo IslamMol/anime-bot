@@ -13,6 +13,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     BotCommand,
     CallbackQuery,
+    ErrorEvent,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InlineQuery,
@@ -28,11 +29,21 @@ from aiogram.types import (
 from . import anilibria, animego, shikimori, subs
 from .config import BASE_DIR, load_config
 from .db import add_fav, init_db, is_fav, list_favs, remove_fav
+from .middleware import ThrottleMiddleware
 from .parser import post_new as parser_post_new
 from .posted import load_posted_ids
 
+log = logging.getLogger("bot")
+
 router = Router()
 cfg = load_config()
+
+# запрос длиннее этого в API все равно не имеет смысла
+MAX_QUERY = 80
+
+
+def clean_query(q: str | None) -> str:
+    return (q or "").strip()[:MAX_QUERY]
 
 BTN_SEARCH = "🔍 Найти аниме"
 BTN_NEW = "🆕 Новинки 2026"
@@ -171,6 +182,10 @@ def group_by_title(results: list[dict]) -> list[tuple[str, list[dict]]]:
 
 
 async def do_search(msg: Message, query: str, page: int = 1, state: FSMContext | None = None) -> None:
+    query = clean_query(query)
+    if len(query) < 2:
+        await msg.answer("Напиши хотя бы два символа названия.", reply_markup=main_menu())
+        return
     try:
         res = await anilibria.search_releases(query, limit=PAGE_SIZE, page=page)
     except Exception:
@@ -648,7 +663,7 @@ async def post_cmd(msg: Message) -> None:
 @router.inline_query()
 async def inline_search(inline: InlineQuery) -> None:
     """Поиск прямо из любого чата: @бот наруто. Карточки со кнопкой «Смотреть»."""
-    q = (inline.query or "").strip()
+    q = clean_query(inline.query)
     if len(q) < 2:
         await inline.answer(
             [], switch_pm_text="Напиши название аниме…",
@@ -746,8 +761,32 @@ async def unfav(cb: CallbackQuery) -> None:
         await cb.answer("Не получилось, попробуй еще раз")
 
 
+@router.errors()
+async def on_error(event: ErrorEvent) -> bool:
+    """Ловим все необработанные исключения: в лог + честный ответ человеку.
+
+    Без этого при сбое внешнего API пользователь видел просто тишину.
+    """
+    log.exception("handler failed: %s", event.exception, exc_info=event.exception)
+    try:
+        upd = event.update
+        if upd.callback_query:
+            await upd.callback_query.answer("Что-то пошло не так, попробуй еще раз")
+        elif upd.message:
+            await upd.message.answer(
+                "Что-то пошло не так. Попробуй еще раз через минуту.",
+                reply_markup=main_menu(),
+            )
+    except Exception:  # ответить тоже может не получиться — не падаем
+        pass
+    return True
+
+
 async def main() -> None:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     if not cfg.bot_token:
         raise SystemExit("Нет BOT_TOKEN. Скопируй .env.example в .env и заполни.")
     import os
@@ -766,8 +805,17 @@ async def main() -> None:
         BotCommand(command="help", description="Помощь"),
     ])
     dp = Dispatcher(storage=MemoryStorage())
+    throttle = ThrottleMiddleware(limit=12, window=10.0)
+    router.message.middleware(throttle)
+    router.callback_query.middleware(throttle)
     dp.include_router(router)
+
+    async def close_bot(bot: Bot) -> None:
+        await bot.session.close()
+
+    dp.shutdown.register(close_bot)
     await dp.start_polling(bot)
+
 
 
 if __name__ == "__main__":

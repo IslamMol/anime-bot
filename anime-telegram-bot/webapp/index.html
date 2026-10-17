@@ -731,10 +731,41 @@
     el.appendChild(frag);
   }
 
+  // Сеть: таймаут + один повтор. Без этого при «зависшем» соединении
+  // спиннер крутился вечно и человек думал, что приложение сломалось.
   async function getJSON(url, opts) {
-    const r = await fetch(url, opts);
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
+    const base = opts || {};
+    const external = base.signal || null;
+    const timeoutMs = base.timeoutMs || 15000;
+    const attempts = base.retries === 0 ? 1 : 2;
+    let lastErr = null;
+    for (let i = 0; i < attempts; i++) {
+      if (external && external.aborted) throw abortErr();
+      const ctl = ("AbortController" in window) ? new AbortController() : null;
+      if (ctl && external) {
+        if (external.aborted) ctl.abort();
+        else external.addEventListener("abort", () => { try { ctl.abort(); } catch (e) {} }, { once: true });
+      }
+      const o = Object.assign({}, base);
+      delete o.timeoutMs; delete o.retries;
+      if (ctl) o.signal = ctl.signal;
+      const to = ctl ? setTimeout(() => { try { ctl.abort(); } catch (e) {} }, timeoutMs) : null;
+      try {
+        const r = await fetch(url, o);
+        if (to) clearTimeout(to);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return await r.json();
+      } catch (e) {
+        if (to) clearTimeout(to);
+        lastErr = e;
+        if (external && external.aborted) throw e;
+        if (i + 1 < attempts) await new Promise((res) => setTimeout(res, 500));
+      }
+    }
+    throw lastErr || new Error("network");
+  }
+  function abortErr() {
+    try { return new DOMException("aborted", "AbortError"); } catch (e) { return Object.assign(new Error("aborted"), { name: "AbortError" }); }
   }
 
   // Слой под будущий свой сервер: чтение данных кэшируется в памяти сессии,
@@ -743,6 +774,47 @@
   // контракт описан в README («Свой сервер»).
   const BACKEND = null; // например "https://api.example.com/v1"
   const memCache = new Map();
+  // Дисковый кэш: повторный запуск приложения не ждет каталог заново.
+  // TTL тот же, что у памяти; старые ключи вычищаем, чтобы не забить localStorage.
+  const DISK_PREFIX = "anicache:";
+  const DISK_MAX = 24;
+  const DISK_ITEM_MAX = 200000;
+  function diskRead(url, ms) {
+    try {
+      const raw = localStorage.getItem(DISK_PREFIX + url);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (!o || typeof o.t !== "number" || Date.now() - o.t > ms) {
+        localStorage.removeItem(DISK_PREFIX + url);
+        return null;
+      }
+      return o.v;
+    } catch (e) { return null; }
+  }
+  function diskWrite(url, v) {
+    try {
+      const body = JSON.stringify({ t: Date.now(), v });
+      if (body.length > DISK_ITEM_MAX) return;
+      localStorage.setItem(DISK_PREFIX + url, body);
+      pruneDisk();
+    } catch (e) { /* переполнение квоты — не критично */ }
+  }
+  function pruneDisk() {
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(DISK_PREFIX) === 0) keys.push(k);
+      }
+      if (keys.length <= DISK_MAX) return;
+      keys.sort((a, b) => {
+        const ta = Number((JSON.parse(localStorage.getItem(a) || "{}") || {}).t) || 0;
+        const tb = Number((JSON.parse(localStorage.getItem(b) || "{}") || {}).t) || 0;
+        return ta - tb;
+      });
+      keys.slice(0, keys.length - DISK_MAX).forEach((k) => localStorage.removeItem(k));
+    } catch (e) {}
+  }
   async function cj(url, ms = 0, opts) {
     const now = Date.now();
     if (ms > 0 && memCache.has(url)) {
@@ -750,8 +822,12 @@
       if (now - hit.t < ms) return hit.v;
       memCache.delete(url);
     }
+    if (ms > 0) {
+      const d = diskRead(url, ms);
+      if (d !== null) { memCache.set(url, { t: now, v: d }); return d; }
+    }
     const v = await getJSON(url, opts);
-    if (ms > 0) memCache.set(url, { t: now, v });
+    if (ms > 0) { memCache.set(url, { t: now, v }); diskWrite(url, v); }
     return v;
   }
 
@@ -1349,6 +1425,7 @@
       $("ctBuf").style.width = bpct + "%";
       $("ctCur").textContent = fmtT(t);
       $("ctDur").textContent = fmtT(d);
+      syncAria();
     } catch (e) {}
   }
 
@@ -1394,6 +1471,7 @@
     $("ctlVol").value = video.muted ? 0 : video.volume;
     const pEl = video.closest(".player");
     if (pEl) pEl.classList.toggle("muted", video.muted || video.volume === 0);
+    syncAria();
   });
   $("ctlFs").addEventListener("click", async (e) => {
     e.stopPropagation();
@@ -1455,9 +1533,25 @@
     if (pEl) pEl.classList.add("playing");
     ctlShow();
   });
+  // Доступность: кнопки должны проговаривать текущее состояние,
+  // иначе скринридер всегда читает «Играть», даже когда видео играет.
+  function syncAria() {
+    const p = $("ctlPlay"), m = $("ctlMute"), s = $("ctSeek");
+    if (p) p.setAttribute("aria-label", video.paused ? "Играть" : "Пауза");
+    if (m) m.setAttribute("aria-label", video.muted || video.volume === 0 ? "Включить звук" : "Выключить звук");
+    if (s) {
+      const d = Math.round(video.duration || 0);
+      const t = Math.round(video.currentTime || 0);
+      s.setAttribute("aria-valuemin", "0");
+      if (d) s.setAttribute("aria-valuemax", String(d));
+      s.setAttribute("aria-valuenow", String(t));
+      if (d) s.setAttribute("aria-valuetext", fmtT(t) + " из " + fmtT(d));
+    }
+  }
   function ctlOnState() {
     const pEl = video.closest(".player");
     if (pEl) pEl.classList.toggle("playing", !video.paused);
+    syncAria();
     if (video.paused) ctlShow(); // на паузе контролы видны всегда
     else ctlShow();
   }
@@ -1971,7 +2065,9 @@
   async function loadSeasons(shikimoriId) {
     if (!shikimoriId) return;
     try {
-      const rel = await getJSON(`${SHIKI}/animes/${shikimoriId}/related`, { headers: { "User-Agent": "anime-telegram-bot/1.0" } });
+      // Shikimori не отдает CORS-заголовки, поэтому запрос может не пройти:
+      // это не критично, блок связей просто останется пустым.
+      const rel = await getJSON(`${SHIKI}/animes/${shikimoriId}/related`, { retries: 0, timeoutMs: 8000 });
       const sbox = $("seasons");
       const items = (rel || []).filter(x => x.anime).slice(0, 12);
       for (const it of items) {

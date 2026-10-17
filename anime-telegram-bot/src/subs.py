@@ -7,39 +7,33 @@ epcounts.json: {"<release_id>": <доступно серий>}
 в GitHub (best effort, фоном). Парсер в Actions читает подписки, сверяет
 счетчики и шлет уведомления, а epcounts.json коммитит обратно.
 """
-import json
 import logging
-import os
 import subprocess
+
+from .storage import read_json, write_json_atomic
 
 log = logging.getLogger("subs")
 
 
 def load_subs(path: str) -> list[dict]:
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        out = []
-        for s in data if isinstance(data, list) else []:
-            if isinstance(s, dict) and s.get("user_id") and s.get("release_id"):
+    data = read_json(path, [])
+    out = []
+    for s in data if isinstance(data, list) else []:
+        if isinstance(s, dict) and s.get("user_id") and s.get("release_id"):
+            try:
                 out.append({
                     "user_id": int(s["user_id"]),
                     "release_id": int(s["release_id"]),
                     "title": str(s.get("title") or ""),
                 })
-        return out
-    except (FileNotFoundError, ValueError, TypeError):
-        return []
+            except (TypeError, ValueError):
+                continue
+    return out
 
 
 def save_subs(path: str, subs: list[dict]) -> None:
-    d = os.path.dirname(path)
-    if d:
-        os.makedirs(d, exist_ok=True)
     subs = sorted(subs, key=lambda s: (s["user_id"], s["release_id"]))
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(subs, f, ensure_ascii=False, indent=1)
-        f.write("\n")
+    write_json_atomic(path, subs)
 
 
 def upsert_sub(path: str, user_id: int, release_id: int, title: str) -> None:
@@ -54,21 +48,20 @@ def remove_sub(path: str, user_id: int, release_id: int) -> None:
 
 
 def load_counts(path: str) -> dict[str, int]:
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        return {str(k): int(v) for k, v in data.items()} if isinstance(data, dict) else {}
-    except (FileNotFoundError, ValueError, TypeError, AttributeError):
+    data = read_json(path, {})
+    if not isinstance(data, dict):
         return {}
+    out: dict[str, int] = {}
+    for k, v in data.items():
+        try:
+            out[str(k)] = int(v)
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def save_counts(path: str, counts: dict[str, int]) -> None:
-    d = os.path.dirname(path)
-    if d:
-        os.makedirs(d, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({k: int(v) for k, v in sorted(counts.items())}, f, ensure_ascii=False, indent=1)
-        f.write("\n")
+    write_json_atomic(path, {k: int(v) for k, v in sorted(counts.items())})
 
 
 def push_file_to_github(repo_dir: str, rel_path: str, timeout: int = 90) -> bool:

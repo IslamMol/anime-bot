@@ -5,44 +5,33 @@
 Actions коммитит его обратно — и ни один релиз не постится дважды.
 Локально бот продолжает пользоваться SQLite (там же еще и избранное).
 """
-import json
-import os
+from .storage import read_json, write_json_atomic
 
 
 def load_posted_ids(path: str) -> set[int]:
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        return {int(x) for x in data} if isinstance(data, list) else set()
-    except (FileNotFoundError, ValueError, TypeError):
+    data = read_json(path, [])
+    if not isinstance(data, list):
         return set()
+    out: set[int] = set()
+    for x in data:
+        try:
+            out.add(int(x))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def save_posted_ids(path: str, ids: set[int]) -> None:
-    d = os.path.dirname(path)
-    if d:
-        os.makedirs(d, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(sorted(ids), f, ensure_ascii=False, indent=1)
-        f.write("\n")
+    write_json_atomic(path, sorted(ids))
 
 
 def load_tracked(path: str) -> dict[str, dict]:
     """Онгоинги под наблюдением: {"rid": {title, year, type, count}}.
     Отдельно от posted.json: тот — «что уже постили как новинку»,
     этот — «за какими сериями следим». Оба коммитятся обратно в Actions."""
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
-    except (FileNotFoundError, ValueError, TypeError, AttributeError):
-        return {}
+    data = read_json(path, {})
+    return data if isinstance(data, dict) else {}
 
 
 def save_tracked(path: str, tracked: dict[str, dict]) -> None:
-    d = os.path.dirname(path)
-    if d:
-        os.makedirs(d, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(tracked, f, ensure_ascii=False, indent=1)
-        f.write("\n")
+    write_json_atomic(path, tracked)

@@ -11,6 +11,13 @@ node_modules/
 
 # Secrets — никогда не коммитить
 anime-telegram-bot/.env
+anime-telegram-bot/.env.*
+!anime-telegram-bot/.env.example
+
+# Локальная SQLite и её WAL-файлы
+anime-telegram-bot/data/*.db
+anime-telegram-bot/data/*.db-wal
+anime-telegram-bot/data/*.db-shm
 
 # Байткод
 __pycache__/
