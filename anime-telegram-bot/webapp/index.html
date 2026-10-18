@@ -181,7 +181,9 @@
   @media (hover: hover) and (pointer: fine) {
     .tabs button:hover, #eps button:hover, .pager button:hover, .more-btn:hover { filter: brightness(1.15); }
   }
-  .player { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-top: 2px; }
+  /* .player — обычный блок: position: sticky здесь не работает из-за overflow у html/body,
+     поэтому оставляем relative (он же containing block для спиннера, панели и вспышки) */
+  .player { position: relative; z-index: 5; background: var(--bg); padding-top: 2px; }
   video { width: 100%; aspect-ratio: 16/9; max-height: 34dvh; background: #000; border-radius: var(--radius);
     box-shadow: 0 10px 34px rgba(124,92,240,.22), 0 2px 10px rgba(0,0,0,.5); }
   .eps-head { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 2px 4px; }
@@ -250,7 +252,8 @@
     padding: 11px; font-weight: 700; font-size: 14px; margin: 2px 0 8px; min-height: 44px;
   }
   iframe.go { width: 100%; height: 62dvh; border: 0; border-radius: var(--radius); background: #fff; }
-  .player { position: relative; }
+  /* .player позиционируется выше (sticky): position: relative здесь только перебивал её,
+     а sticky сам является containing block для absolute-детей (спиннер, панель, вспышка). */
   .vspin { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .vspin span { width: 34px; height: 34px; border-radius: 50%;
     border: 3px solid rgba(255,255,255,.25); border-top-color: #fff;
@@ -392,13 +395,6 @@
     background: var(--grad); border-color: transparent; color: #fff;
     box-shadow: 0 4px 14px rgba(124,92,240,.4);
   }
-  .lucky { margin-left: auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700;
-    transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
-  }
-  .lucky:active { transform: scale(.96); }
-  .lucky:hover { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc-soft); }
-  .lucky:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
   .cont-btn {
     display: block; width: 100%; margin: 0 0 8px; min-height: 42px;
     background: var(--acc-soft); color: var(--txt); border: 1px solid var(--acc);
@@ -568,13 +564,13 @@
     <div class="sub" id="count" style="font-size:12px;color:var(--muted);padding:2px 0 6px"></div>
     <div id="seasons"></div>
     <div class="dubchips hidden" id="dubchips"></div>
-    <div class="tabs" role="tablist">
-      <button id="tabA" class="active" role="tab">Anilibria</button>
-      <button id="tabG" role="tab">Все серии</button>
+    <div class="tabs" role="tablist" aria-label="Источник серий">
+      <button id="tabA" class="active" role="tab" aria-selected="true" aria-controls="paneA" tabindex="0">Anilibria</button>
+      <button id="tabG" role="tab" aria-selected="false" aria-controls="paneG" tabindex="-1">Все серии</button>
     </div>
-    <div id="paneA">
+    <div id="paneA" role="tabpanel" aria-labelledby="tabA">
       <button class="cont-btn hidden" id="contBtn"></button>
-      <div class="player"><video id="v" playsinline preload="metadata"></video><div class="pbar" id="pbar"><div class="buf" id="pbuf"></div><div class="fill" id="pfill"></div></div><div class="vspin hidden" id="vspin"><span></span></div><div id="flash" class="hidden"></div><div class="skips hidden" id="skips"><button id="skipOp"><i class="ic i-skip"></i>Опенинг</button><button id="skipEd"><i class="ic i-skip"></i>Эндинг</button></div><div id="gestInd" class="hidden"></div><div class="ctl" id="ctl"><button class="ctl-btn" id="ctlPlay" aria-label="Играть"><i class="ic i-play"></i><i class="ic i-pause"></i></button><span class="ct-time"><b id="ctCur">0:00</b><i>/</i><em id="ctDur">0:00</em></span><div class="seek" id="ctSeek" role="slider" aria-label="Позиция" tabindex="0"><div class="tr"></div><div class="buf" id="ctBuf"></div><div class="fill" id="ctFill"></div><div class="knob" id="ctKnob"></div></div><div class="vol"><button class="ctl-btn" id="ctlMute" aria-label="Звук"><i class="ic i-vol"></i><i class="ic i-mute"></i></button><input type="range" id="ctlVol" min="0" max="1" step="0.05" value="1" aria-label="Громкость" /></div><button class="ctl-btn" id="ctlFs" aria-label="Полный экран"><i class="ic i-fs"></i><i class="ic i-fsx"></i></button></div><div class="nextup hidden" id="nextUp"><b>Следующая серия через</b><div class="nnum" id="nextN">5</div><div class="ninfo" id="nextInfo"></div><div class="nrow"><button id="nextGo">Смотреть</button><button id="nextCancel" class="ghost">Отмена</button></div></div></div>
+      <div class="player"><video id="v" playsinline preload="metadata"></video><div class="pbar" id="pbar"><div class="buf" id="pbuf"></div><div class="fill" id="pfill"></div></div><div class="vspin hidden" id="vspin"><span></span></div><div id="flash" class="flash hidden"></div><div class="skips hidden" id="skips"><button id="skipOp"><i class="ic i-skip"></i>Опенинг</button><button id="skipEd"><i class="ic i-skip"></i>Эндинг</button></div><div id="gestInd" class="hidden"></div><div class="ctl" id="ctl"><button class="ctl-btn" id="ctlPlay" aria-label="Играть"><i class="ic i-play"></i><i class="ic i-pause"></i></button><span class="ct-time"><b id="ctCur">0:00</b><i>/</i><em id="ctDur">0:00</em></span><div class="seek" id="ctSeek" role="slider" aria-label="Позиция" tabindex="0"><div class="tr"></div><div class="buf" id="ctBuf"></div><div class="fill" id="ctFill"></div><div class="knob" id="ctKnob"></div></div><div class="vol"><button class="ctl-btn" id="ctlMute" aria-label="Звук"><i class="ic i-vol"></i><i class="ic i-mute"></i></button><input type="range" id="ctlVol" min="0" max="1" step="0.05" value="1" aria-label="Громкость" /></div><button class="ctl-btn" id="ctlFs" aria-label="Полный экран"><i class="ic i-fs"></i><i class="ic i-fsx"></i></button></div><div class="nextup hidden" id="nextUp"><b>Следующая серия через</b><div class="nnum" id="nextN">5</div><div class="ninfo" id="nextInfo"></div><div class="nrow"><button id="nextGo">Смотреть</button><button id="nextCancel" class="ghost">Отмена</button></div></div></div>
       <div class="epcard hidden" id="epCard"><img id="epImg" alt="" /><div><b id="epTitle"></b><span id="epName"></span></div></div>
       <div class="eps-head"><b>Серии</b><span id="epsInfo"></span></div>
       <div class="vopts">
@@ -592,7 +588,7 @@
       </div>
       <div id="eps"></div>
     </div>
-    <div id="paneG" class="hidden">
+    <div id="paneG" class="hidden" role="tabpanel" aria-labelledby="tabG">
       <div class="row" id="goLink"></div>
       <a class="open-btn" id="goOpen" href="#" target="_blank" rel="noopener">Открыть плеер AnimeGO</a>
       <div id="goFrame"></div>
@@ -634,16 +630,28 @@
   const q0 = new URLSearchParams(location.search);
 
   const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
-  if (tg) {
-    tg.expand();
+  function applyTheme() {
     try {
-      const th = tg.themeParams || {};
+      const th = (tg && tg.themeParams) || {};
       const root = document.documentElement.style;
       if (th.bg_color) root.setProperty("--bg", th.bg_color);
       if (th.text_color) root.setProperty("--txt", th.text_color);
       if (th.hint_color) root.setProperty("--muted", th.hint_color);
       if (th.button_color) root.setProperty("--acc", th.button_color);
     } catch (e) {}
+  }
+  if (tg) {
+    try { tg.ready(); } catch (e) {}   // сообщаем Telegram, что WebApp загрузился
+    try { tg.expand(); } catch (e) {}
+    applyTheme();
+    // пользователь меняет тему Telegram — сразу перекрашиваемся
+    try { tg.onEvent("themeChanged", applyTheme); } catch (e) {}
+  }
+  // внешние ссылки: в WebView window.open часто режется, поэтому в Telegram идём через openLink
+  function openExternal(url) {
+    try { if (tg && tg.openLink) { tg.openLink(url); return; } } catch (e) {}
+    const w = window.open(url, "_blank");
+    try { if (w) w.opener = null; } catch (e) {}
   }
 
   const $ = (id) => document.getElementById(id);
@@ -667,6 +675,13 @@
   // --- навигация ---
   const views = { home: $("view-home"), list: $("view-list"), sched: $("view-sched"), search: $("view-search"), title: $("view-title"), favs: $("view-favs") };  let lastList = "home";
   function nav(name) {
+    // Уходим с экрана тайтла — глушим видео, снимаем отсчёт «следующая серия»
+    // и убиваем HLS: иначе звук и загрузка сегментов продолжаются в фоне.
+    if (name !== "title") {
+      try { video.pause(); } catch (e) {}
+      try { stopNext(); } catch (e) {}
+      if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+    }
     for (const k of Object.keys(views)) views[k].classList.toggle("hidden", k !== name);
     document.querySelectorAll("[data-nav]").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
     if (name !== "title") lastList = name;
@@ -680,7 +695,13 @@
 
   function toast(msg) {
     let t = document.querySelector(".toast");
-    if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); }
+    if (!t) {
+      t = document.createElement("div");
+      t.className = "toast";
+      t.setAttribute("role", "status");     // скринридер прочитает сообщение
+      t.setAttribute("aria-live", "polite");
+      document.body.appendChild(t);
+    }
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(t._h);
@@ -898,10 +919,25 @@
         const sh = f.shikimori || {};
         setImg($("featImg"), posterOf(f, "big"), titleOf(f));
         $("featTitle").textContent = titleOf(f);
-        const meta = [f.year ? String(f.year) : ""];
-        if (sh.rating) meta.push('<i class="ic i-star" style="width:12px;height:12px;vertical-align:-2px"></i> ' + sh.rating);
-        if (f.is_ongoing) meta.push("онгоинг");
-        $("featMeta").innerHTML = meta.filter(Boolean).join(" • ");
+        // Собираем мета-строку через DOM: рейтинг приходит из внешнего API,
+        // вставлять его через innerHTML нельзя (потенциальная HTML-инъекция).
+        const featMeta = $("featMeta");
+        featMeta.textContent = "";
+        const parts = [];
+        if (f.year) parts.push({ text: String(f.year) });
+        if (sh.rating) parts.push({ star: true, text: String(sh.rating) });
+        if (f.is_ongoing) parts.push({ text: "онгоинг" });
+        parts.forEach((p, i) => {
+          if (i) featMeta.appendChild(document.createTextNode(" • "));
+          if (p.star) {
+            const st = document.createElement("i");
+            st.className = "ic i-star";
+            st.style.cssText = "width:12px;height:12px;vertical-align:-2px";
+            featMeta.appendChild(st);
+            featMeta.appendChild(document.createTextNode(" "));
+          }
+          featMeta.appendChild(document.createTextNode(p.text));
+        });
         $("featBtn").onclick = () => openTitle(f.id);
         $("feat").classList.remove("hidden");
       }
@@ -1002,7 +1038,6 @@
     } catch (e) {
       if (reset) $("grid-list").innerHTML = '<div class="warn">Ошибка загрузки.</div>';
       btn.disabled = false; btn.textContent = "Повторить";
-      listPage = Math.max(1, listPage - 0);
     } finally { listBusy = false; }
   }
   document.querySelectorAll("[data-list]").forEach(b => b.onclick = () => openList(b.dataset.list));
@@ -1016,12 +1051,12 @@
     const grid = $("grid-sched");
     grid.innerHTML = '<div class="skel" style="height:190px"></div>'.repeat(9);
     try {
-      // собираем ~3 страницы онгоингов, чтобы фильтр по дню не был пустым
-      const pages = await Promise.all([
-        getJSON(`${API}/anime/catalog/releases?f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=1&limit=30`),
-        getJSON(`${API}/anime/catalog/releases?f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=2&limit=30`),
-        getJSON(`${API}/anime/catalog/releases?f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=3&limit=30`),
-      ]);
+      // собираем ~3 страницы онгоингов, чтобы фильтр по дню не был пустым.
+      // Через кэш на 5 минут: переключение дней по кнопкам не должно каждый раз дёргать сеть.
+      const ongoing = n => `${API}/anime/catalog/releases?f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=${n}&limit=30`;
+      const settled = await Promise.allSettled([cj(ongoing(1), 300000), cj(ongoing(2), 300000), cj(ongoing(3), 300000)]);
+      const pages = settled.map(s => (s.status === "fulfilled" ? s.value : null)).filter(Boolean);
+      if (!pages.length) throw new Error("schedule unavailable");
       const seen = new Set(); const items = [];
       pages.forEach(p => (p.data || []).forEach(r => {
         if (!seen.has(r.id)) { seen.add(r.id); items.push(r); }
@@ -1208,13 +1243,15 @@
 
   // --- тайтл ---
   const video = $("v"), box = $("eps");
-  let releaseId = null, epsList = [], curIdx = 0, page = 0, hls = null, curRelease = null, animego = "";
+  let releaseId = null, epsList = [], curIdx = 0, page = 0, hls = null, curRelease = null, animego = "", title = "";
   let hlsRetry = 0, pendingSeek = 0, lastSave = 0, sourceChanging = false;
   function playUrl(url, autoplay = true) {
     if (!url) return;
     if (autoplay) showSpin(true);
     hlsRetry = 0;
-    if (Hls.isSupported()) {
+    // hls.js тянется с CDN и может не загрузиться (блокировка, офлайн-режим):
+    // при его отсутствии отдаём ссылку нативному плееру, а не падаем с ReferenceError.
+    if (typeof Hls !== "undefined" && Hls.isSupported()) {
       if (hls) hls.destroy();
       hls = new Hls({ maxBufferLength: 30 });
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -1409,9 +1446,38 @@
   });
   // позиция просмотра: запоминаем серию и секунду (пока локально, позже — синк на свой сервер)
   function posKey(id) { return "pos:" + (id || releaseId); }
+  // «Продолжить просмотр» копится само: держим только 24 последних тайтла,
+  // иначе localStorage однажды заполнится и прогресс перестанет сохраняться.
+  const POS_MAX = 24;
+  function prunePos() {
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("pos:")) keys.push(k);
+      }
+      if (keys.length <= POS_MAX) return;
+      keys.sort((a, b) => {
+        let ta = 0, tb = 0;
+        try { ta = JSON.parse(localStorage.getItem(a) || "{}").at || 0; } catch (e) {}
+        try { tb = JSON.parse(localStorage.getItem(b) || "{}").at || 0; } catch (e) {}
+        return tb - ta; // свежие вперёд, хвост удаляем
+      });
+      keys.slice(POS_MAX).forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+  }
   function savePos() {
     if (sourceChanging || !releaseId || !epsList.length) return;
-    try { localStorage.setItem(posKey(), JSON.stringify({ ep: epsList[curIdx].ordinal, t: Math.floor(video.currentTime || 0) })); } catch (e) {}
+    try {
+      const payload = { ep: epsList[curIdx].ordinal, t: Math.floor(video.currentTime || 0) };
+      // метку времени не перезаписываем на каждом автосейве, только при смене серии/первом сохранении
+      try {
+        const prev = JSON.parse(localStorage.getItem(posKey()) || "null");
+        payload.at = (prev && prev.ep === payload.ep && prev.at) ? prev.at : Date.now();
+      } catch (e) { payload.at = Date.now(); }
+      localStorage.setItem(posKey(), JSON.stringify(payload));
+      prunePos();
+    } catch (e) {}
     try { markContDirty(); } catch (e) {}
   }
   video.addEventListener("timeupdate", () => {
@@ -1467,7 +1533,12 @@
   ctlEl.addEventListener("click", (e) => e.stopPropagation()); // клики по панели не добивают до видео
   ctlEl.addEventListener("pointerenter", () => clearTimeout(ctlTimer));
   ctlEl.addEventListener("pointerleave", scheduleCtlHide);
-  ctlEl.addEventListener("focusin", () => clearTimeout(ctlTimer));
+  ctlEl.addEventListener("focusin", () => {
+    // фокус с клавиатуры ушёл внутрь панели — показываем её,
+    // иначе Tab уводит в невидимые кнопки (панель скрыта только opacity:0)
+    clearTimeout(ctlTimer);
+    ctlEl.classList.add("show");
+  });
   ctlEl.addEventListener("focusout", scheduleCtlHide);
   $("ctlPlay").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -1580,7 +1651,6 @@
   seekEl.addEventListener("pointerleave", scheduleCtlHide);
   video.addEventListener("mousemove", () => { if (!video.paused) ctlShow(); });
   video.addEventListener("mouseleave", () => { if (!video.paused) ctlHide(); });
-  window._ctlShow = ctlShow;
   ctlShow(); // при открытии тайтла контролы видны, пока видео на паузе
   video.addEventListener("pause", savePos);
   window.addEventListener("pagehide", savePos);
@@ -1702,10 +1772,11 @@
         if (!id) continue;
         try {
           const p = JSON.parse(localStorage.getItem(k));
-          if (p && typeof p.ep === "number") out.push({ id, ep: p.ep, t: p.t | 0 });
+          if (p && typeof p.ep === "number") out.push({ id, ep: p.ep, t: p.t | 0, at: p.at | 0 });
         } catch (e) {}
       }
     } catch (e) {}
+    out.sort((a, b) => (b.at || 0) - (a.at || 0)); // сначала то, что смотрели недавно
     return out;
   }
   async function renderContinue(force) {
@@ -1826,6 +1897,10 @@
   function showTab(which) {
     const a = which === "A";
     $("tabA").classList.toggle("active", a); $("tabG").classList.toggle("active", !a);
+    $("tabA").setAttribute("aria-selected", String(a));
+    $("tabG").setAttribute("aria-selected", String(!a));
+    $("tabA").tabIndex = a ? 0 : -1;   // в таб-порядке только активная вкладка
+    $("tabG").tabIndex = a ? -1 : 0;
     $("paneA").classList.toggle("hidden", !a); $("paneG").classList.toggle("hidden", a);
     if (!a && !$("goFrame").firstChild) loadGo();
   }
@@ -1838,17 +1913,17 @@
     return `${title}${ord} русская озвучка аниме`;
   }
   $("netYt").onclick = () => {
-    window.open("https://www.youtube.com/results?search_query=" + encodeURIComponent(netQuery()), "_blank", "noopener");
+    openExternal("https://www.youtube.com/results?search_query=" + encodeURIComponent(netQuery()));
   };
   $("netVk").onclick = () => {
-    window.open("https://vk.com/video?q=" + encodeURIComponent(netQuery()), "_blank", "noopener");
+    openExternal("https://vk.com/video?q=" + encodeURIComponent(netQuery()));
   };
   $("netVost").onclick = () => {
     const q = `${title} ${epsList[curIdx] ? epsList[curIdx].ordinal + " серия" : ""}`.trim();
-    window.open("https://v14.vost.pw/index.php?do=search&subaction=search&story=" + encodeURIComponent(q), "_blank", "noopener");
+    openExternal("https://v14.vost.pw/index.php?do=search&subaction=search&story=" + encodeURIComponent(q));
   };
   $("netWeb").onclick = () => {
-    window.open("https://www.google.com/search?q=" + encodeURIComponent(netQuery()), "_blank", "noopener");
+    openExternal("https://www.google.com/search?q=" + encodeURIComponent(netQuery()));
   };
   // --- первоисточник: манга/манхва/маньхуа по названию тайтла ---
   function srcQuery() {
@@ -1871,6 +1946,15 @@
     $("mangaWebSearch").focus();
   }
   function closeMangaDialog() { $("mangaDialog").classList.add("hidden"); }
+  // Фокус-ловушка: пока диалог открыт, Tab не должен уводить на контент под ним
+  $("mangaDialog").addEventListener("keydown", e => {
+    if (e.key !== "Tab") return;
+    const f = Array.from($("mangaDialog").querySelectorAll("button, a[href]")).filter(el => el.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
   function openMangaSearch(url, q) {
     const tab = window.open(url, "_blank");
     if (!tab) { toast("Разреши открытие новой вкладки и попробуй ещё раз"); return; }
@@ -1892,7 +1976,7 @@
   $("mangaWebSearch").onclick = () => {
     if (mangaDialogMode === "question") { showMangaDialog("cat"); return; }
     closeMangaDialog();
-    window.open("https://www.google.com/search?q=" + encodeURIComponent(mangaReturnQuery || srcQuery()), "_blank", "noopener");
+    openExternal("https://www.google.com/search?q=" + encodeURIComponent(mangaReturnQuery || srcQuery()));
   };
   $("mangaDialogClose").onclick = closeMangaDialog;
   $("mangaDialog").addEventListener("click", e => { if (e.target === $("mangaDialog")) closeMangaDialog(); });
@@ -1908,19 +1992,23 @@
     openMangaSearch("https://mangalib.me/ru/catalog?q=" + encodeURIComponent(q), q);
   };
 
+  // Ссылку на AnimeGO присылает бот, но её же можно подсунуть и через URL.
+  // Пускаем только домены animego.me, любой другой https отбрасываем.
+  function safeAnimego(u) {
+    try {
+      const x = new URL(String(u || ""));
+      if (x.protocol !== "https:") return "";
+      const h = x.hostname.toLowerCase();
+      if (h === "animego.me" || h.endsWith(".animego.me")) return x.href;
+    } catch (e) {}
+    return "";
+  }
+
   async function loadGo() {
     const linkBox = $("goLink"), frameBox = $("goFrame"), openBtn = $("goOpen");
-    // ищем страницу AnimeGO лениво — только когда вкладку открыли
-    if (!animego || !/^https:\/\//.test(animego)) {
-      linkBox.textContent = "Ищу плеер с другими озвучками…";
-      try {
-        const html = await fetch("https://animego.me/search/all?q=" + encodeURIComponent(title),
-          { headers: { "User-Agent": "Mozilla/5.0" } }).then(r => r.text());
-        const m = html.match(/href="(\/anime\/[a-z0-9\-]+)"[^>]*>\s*<img[^>]+alt="([^"]+)"/i);
-        if (m) animego = "https://animego.me" + m[1];
-      } catch (err) {}
-    }
-    if (animego && /^https:\/\//.test(animego)) {
+    // Живой поиск страницы AnimeGO из браузера невозможен: сайт не отдаёт CORS-заголовки,
+    // такой fetch всегда падает. Работаем только с готовой ссылкой из бота.
+    if (animego) {
       openBtn.href = animego;
       linkBox.textContent = "Другие озвучки — плеер AnimeGO ниже. Если не грузится, открой кнопкой.";
       frameBox.innerHTML = "";
@@ -1953,7 +2041,10 @@
     box.innerHTML = '<div class="warn">Загрузка серий…</div>';
     $("epsInfo").textContent = ""; $("seasons").innerHTML = ""; $("goFrame").innerHTML = "";
     $("t-desc").textContent = ""; $("t-chips").innerHTML = ""; $("t-facts").innerHTML = "";
-    releaseId = id; curIdx = 0; page = 0; animego = q0.get("animego") || "";
+    // у предыдущего тайтла описание могло остаться развёрнутым — сворачиваем
+    $("t-desc").classList.remove("open");
+    $("t-more").textContent = "Показать полностью"; $("t-more").classList.add("hidden");
+    releaseId = id; curIdx = 0; page = 0; animego = safeAnimego(q0.get("animego"));
     let mRes, eRes, gRes;
     try {
       [mRes, eRes, gRes] = await Promise.all([
@@ -1963,7 +2054,14 @@
       ]);
     } catch (e) {
       sourceChanging = false;
-      box.innerHTML = '<div class="warn">Не загрузилось: ' + (e && e.message || e) + '. Проверь интернет и открой заново.</div>';
+      // сообщение об ошибке строим через textContent: текст пришёл из сети,
+      // и вставлять его через innerHTML нельзя
+      box.textContent = "";
+      const warn = document.createElement("div");
+      warn.className = "warn";
+      warn.textContent = "Не загрузилось: " + ((e && e.message) || e) + ". Проверь интернет и открой заново.";
+      box.appendChild(warn);
+      hideBoot(); // иначе при переходе по ссылке из бота спиннер висит до самого таймаута
       return;
     }
     const meta = mRes.data || mRes;
@@ -2082,10 +2180,12 @@
 
   async function loadSeasons(shikimoriId) {
     if (!shikimoriId) return;
+    const forRelease = releaseId; // если пользователь уже открыл другой тайтл — ответ не наш
     try {
       // Shikimori не отдает CORS-заголовки, поэтому запрос может не пройти:
       // это не критично, блок связей просто останется пустым.
       const rel = await getJSON(`${SHIKI}/animes/${shikimoriId}/related`, { retries: 0, timeoutMs: 8000 });
+      if (releaseId !== forRelease) return;
       const sbox = $("seasons");
       const items = (rel || []).filter(x => x.anime).slice(0, 12);
       for (const it of items) {
@@ -2108,8 +2208,9 @@
 
   // --- старт: диплинк из бота открывает сразу тайтл ---
   (async () => {
-    const rid = q0.get("release_id");
-    if (q0.get("animego")) animego = q0.get("animego");
+    // id тайтла должен быть числом: всё остальное в URL игнорируем,
+    // чтобы мусорный параметр не давал битый запрос и мусор в localStorage
+    const rid = (q0.get("release_id") || "").replace(/\D/g, "");
     if (rid) {
       try { await openTitle(rid); return; } catch (e) {}
     }

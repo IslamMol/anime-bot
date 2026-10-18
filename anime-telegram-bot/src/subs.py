@@ -65,7 +65,11 @@ def save_counts(path: str, counts: dict[str, int]) -> None:
 
 
 def push_file_to_github(repo_dir: str, rel_path: str, timeout: int = 90) -> bool:
-    """Коммит + пуш одного файла. Best effort: при любой ошибке просто False."""
+    """Коммит + пуш одного файла. Best effort: при любой ошибке просто False.
+
+    rel_path считается от repo_dir (git разрешает pathspec относительно cwd),
+    поэтому годится и когда repo_dir — корень репозитория, и когда подпапка.
+    """
     try:
         def run(*args: str) -> subprocess.CompletedProcess:
             return subprocess.run(
@@ -73,8 +77,14 @@ def push_file_to_github(repo_dir: str, rel_path: str, timeout: int = 90) -> bool
                 text=True, timeout=timeout,
             )
         if run("rev-parse", "--git-dir").returncode != 0:
+            log.warning("push %s: %s не git-репозиторий", rel_path, repo_dir)
             return False
-        run("add", rel_path)
+        add = run("add", rel_path)
+        if add.returncode != 0:
+            # раньше ошибка git add молча съедалась, и вызывающий код считал,
+            # что файл улетел на GitHub
+            log.warning("git add %s не прошел: %s", rel_path, (add.stderr or "").strip()[:200])
+            return False
         chk = run("diff", "--cached", "--quiet")
         if chk.returncode == 0:
             return True  # менять нечего
@@ -86,6 +96,7 @@ def push_file_to_github(repo_dir: str, rel_path: str, timeout: int = 90) -> bool
             # remote ушел вперед (Actions закоммитил) — подтягиваемся и повторяем
             run("pull", "--rebase")
             if run("push").returncode != 0:
+                log.warning("push %s не удался после pull --rebase", rel_path)
                 return False
         return True
     except Exception as e:  # noqa: BLE001 — фоновая задача, падать нельзя

@@ -30,13 +30,17 @@ from . import anilibria, animego, shikimori, subs
 from .config import BASE_DIR, load_config
 from .db import add_fav, init_db, is_fav, list_favs, remove_fav
 from .middleware import ThrottleMiddleware
-from .parser import post_new as parser_post_new
+from .parser import clamp_html, post_new as parser_post_new
 from .posted import load_posted_ids
 
 log = logging.getLogger("bot")
 
 router = Router()
 cfg = load_config()
+
+# фоновая синхронизация подписок: держим ссылку на задачу и сериализуем пуш
+_sync_task: "asyncio.Task | None" = None
+_sync_lock: "asyncio.Lock | None" = None
 
 # запрос длиннее этого в API все равно не имеет смысла
 MAX_QUERY = 80
@@ -60,7 +64,8 @@ FILTER_YEARS = [2026, 2025, 2024, 0]
 
 
 def esc(s: object) -> str:
-    return html.escape(str(s or ""), quote=False)
+    # str(s or "") склеивал 0 и False в пустую строку: year=0 отрисовывался как «»
+    return html.escape(str(s) if s is not None else "", quote=False)
 
 
 class SearchStates(StatesGroup):
@@ -87,16 +92,12 @@ def watch_url_for(release: dict, animego_url: str | None = None) -> str | None:
     # Заглушку your-domain считаем отсутствующей — Telegram такие URL отклоняет
     if not cfg.webapp_url or "your-domain" in cfg.webapp_url:
         return None
-    sh = release.get("shikimori") or {}
-    q = urllib.parse.urlencode({
-        "v": "9",
-        "release_id": release["id"],
-        "title": anilibria.title_of(release),
-        "shikimori_id": sh.get("id") or "",
-        "total": release.get("episodes_total") or "",
-        "animego": animego_url or "",
-    })
-    return f"{cfg.webapp_url}index.html?{q}"
+    # WebApp читает из ссылки ровно два параметра: release_id и animego.
+    # Остальное (название, id Шикимори, число серий) он игнорирует — не мусорим в URL.
+    params = {"release_id": release["id"]}
+    if animego_url:
+        params["animego"] = animego_url
+    return f"{cfg.webapp_url}index.html?{urllib.parse.urlencode(params)}"
 
 
 def kb_search(results: list[dict]) -> InlineKeyboardMarkup:
@@ -245,9 +246,9 @@ async def send_card_by_libria(msg: Message, release_id: int, user_id: int | None
         in_fav = False
     try:
         if img:
-            await msg.answer_photo(img, caption=caption[:1000], reply_markup=kb_card(r, alt_url, in_fav))
+            await msg.answer_photo(img, caption=clamp_html(caption), reply_markup=kb_card(r, alt_url, in_fav))
         else:
-            await msg.answer(caption[:1000], reply_markup=kb_card(r, alt_url, in_fav))
+            await msg.answer(clamp_html(caption), reply_markup=kb_card(r, alt_url, in_fav))
     except Exception:
         await msg.answer("Не получилось отправить карточку, попробуй еще раз.", reply_markup=main_menu())
 
@@ -681,7 +682,8 @@ async def inline_search(inline: InlineQuery) -> None:
         rid = r["id"]
         title = anilibria.title_of(r)
         year = r.get("year") or "?"
-        deep = f"https://t.me/{uname}?start=libria_{rid}"
+        # без BOT_USERNAME ссылка вида https://t.me/?start=... ведет в никуда
+        deep = f"https://t.me/{uname}?start=libria_{rid}" if uname else None
         text = f"<b>{esc(title)} ({esc(year)})</b>\n\nСмотреть и все серии — в боте."
         kb = None
         watch = watch_url_for(r, None)
@@ -693,14 +695,14 @@ async def inline_search(inline: InlineQuery) -> None:
         if img:
             out.append(InlineQueryResultPhoto(
                 id=str(rid), photo_url=img, thumbnail_url=img,
-                caption=text[:1000], parse_mode="HTML", reply_markup=kb,
+                caption=clamp_html(text), parse_mode="HTML", reply_markup=kb,
                 description=f"{year}",
             ))
         else:
             out.append(InlineQueryResultArticle(
                 id=f"a{rid}", title=f"{title} ({year})",
                 input_message_content=InputTextMessageContent(
-                    message_text=text + f"\n{deep}", parse_mode="HTML",
+                    message_text=clamp_html(text + (f"\n{deep}" if deep else "")), parse_mode="HTML",
                 ),
                 reply_markup=kb, description="Открыть в боте",
             ))
@@ -709,56 +711,87 @@ async def inline_search(inline: InlineQuery) -> None:
 
 def _sync_subs_bg() -> None:
     """Фоновая отправка subscriptions.json в GitHub. Никогда не роняет бота."""
+    global _sync_task, _sync_lock
     try:
         import asyncio as _aio
-
-        async def _run() -> None:
-            try:
-                await _aio.to_thread(
-                    subs.push_file_to_github, str(BASE_DIR), "anime-telegram-bot/data/subscriptions.json"
-                )
-            except Exception:
-                pass
 
         try:
             loop = _aio.get_running_loop()
         except RuntimeError:
             return
-        loop.create_task(_run())
+        if _sync_lock is None:
+            _sync_lock = _aio.Lock()
+
+        async def _run() -> None:
+            try:
+                # Пуш только по одному: параллельные git-команды дерутся за index.lock
+                async with _sync_lock:
+                    ok = await _aio.to_thread(
+                        subs.push_file_to_github, str(BASE_DIR), "data/subscriptions.json"
+                    )
+                if not ok:
+                    log.warning("subscriptions.json не улетел в GitHub — подписки увидят не все")
+            except Exception as e:
+                log.warning("subs sync failed: %s", e)
+
+        # Ссылку на задачу держим: иначе сборщик мусора может её прибить
+        _sync_task = loop.create_task(_run())
     except Exception:
         pass
 
 
 @router.callback_query(F.data.startswith("fav:"))
 async def fav(cb: CallbackQuery) -> None:
+    # Отвечаем сразу: get_release ходит в сеть и может «крутить часики» до таймаута,
+    # а Telegram ждёт ответ на callback всего ~15 c.
+    await cb.answer("⭐ В избранном, уведомления о новых сериях включены")
     try:
         rid = int(cb.data.split(":")[1])
+    except (IndexError, ValueError):
+        return
+    try:
         r = await anilibria.get_release(rid, with_episodes=False)
         title = anilibria.title_of(r)
+    except Exception:
+        title = f"Релиз {rid}"  # название косметическое, из-за него не отказываем
+    try:
         await add_fav(cfg.db_path, cb.from_user.id, rid, title)
+    except Exception:
+        log.warning("add_fav failed", exc_info=True)
         try:
-            subs.upsert_sub(cfg.subs_path, cb.from_user.id, rid, title)
+            await cb.message.answer("Не получилось сохранить в избранное, попробуй еще раз")
         except Exception:
             pass
-        _sync_subs_bg()
-        await cb.answer("⭐ Добавил в избранное + включил уведомления о новых сериях")
+        return
+    try:
+        subs.upsert_sub(cfg.subs_path, cb.from_user.id, rid, title)
     except Exception:
-        await cb.answer("Не получилось, попробуй еще раз")
+        log.warning("upsert_sub failed", exc_info=True)
+    _sync_subs_bg()
 
 
 @router.callback_query(F.data.startswith("unfav:"))
 async def unfav(cb: CallbackQuery) -> None:
+    # Тоже отвечаем сразу — дальше идут работа с БД и git-пуш подписок
+    await cb.answer("Убрал из избранного, уведомления выключены")
     try:
         rid = int(cb.data.split(":")[1])
+    except (IndexError, ValueError):
+        return
+    try:
         await remove_fav(cfg.db_path, cb.from_user.id, rid)
+    except Exception:
+        log.warning("remove_fav failed", exc_info=True)
         try:
-            subs.remove_sub(cfg.subs_path, cb.from_user.id, rid)
+            await cb.message.answer("Не получилось убрать из избранного, попробуй еще раз")
         except Exception:
             pass
-        _sync_subs_bg()
-        await cb.answer("Убрал из избранного, уведомления выключены")
+        return
+    try:
+        subs.remove_sub(cfg.subs_path, cb.from_user.id, rid)
     except Exception:
-        await cb.answer("Не получилось, попробуй еще раз")
+        log.warning("remove_sub failed", exc_info=True)
+    _sync_subs_bg()
 
 
 @router.errors()

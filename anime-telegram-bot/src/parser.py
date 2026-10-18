@@ -16,7 +16,25 @@ from .subs import load_counts, load_subs, save_counts
 
 
 def esc(s: object) -> str:
-    return html.escape(str(s or ""), quote=False)
+    return html.escape(str(s) if s is not None else "", quote=False)
+
+
+def clamp_html(s: str, limit: int = 1000) -> str:
+    """Обрезка под лимит Telegram без разрыва HTML-тега или сущности.
+
+    Если резать вслепую, на границе может остаться «&am» или «<b» —
+    Telegram отвечает «can't parse entities» и пост не уходит.
+    """
+    if len(s) <= limit:
+        return s
+    cut = s[:limit]
+    amp = cut.rfind("&")
+    if amp != -1 and ";" not in cut[amp:]:
+        cut = cut[:amp]
+    lt = cut.rfind("<")
+    if lt != -1 and ">" not in cut[lt:]:
+        cut = cut[:lt]
+    return cut.rstrip()
 
 
 def _watch_kb(cfg, rid: int):
@@ -47,6 +65,7 @@ async def post_new(limit: int) -> int:
     tracked = load_tracked(cfg.tracked_path)
     bot = Bot(cfg.bot_token, default=DefaultBotProperties(parse_mode="HTML"))
     posted = 0
+    failed = 0
     try:
         for r in await anilibria.get_latest(limit):
             rid = r["id"]
@@ -71,12 +90,21 @@ async def post_new(limit: int) -> int:
                 lines.append(esc(desc))
             lines.append("")
             lines.append(_tags_for(r))
-            text = "\n".join(lines)
-            if img:
-                await bot.send_photo(cfg.channel_id, img, caption=text[:1000], reply_markup=kb)
-            else:
-                await bot.send_message(cfg.channel_id, text[:1000], reply_markup=kb)
+            text = clamp_html("\n".join(lines))
+            try:
+                if img:
+                    await bot.send_photo(cfg.channel_id, img, caption=text, reply_markup=kb)
+                else:
+                    await bot.send_message(cfg.channel_id, text, reply_markup=kb)
+            except Exception as e:
+                # один проблемный релиз не должен ронять остальные и терять журнал
+                failed += 1
+                print(f"Post failed for {rid}: {e}")
+                continue
             posted_ids.add(rid)
+            # пишем журнал сразу после успешного поста: если упадем на следующем
+            # релизе, уже отправленное не уйдет в канал второй раз
+            save_posted_ids(cfg.posted_path, posted_ids)
             # онгоинг ставим под наблюдение (молча): серии проверим ниже
             if r.get("is_ongoing"):
                 if not ep_no:
@@ -92,9 +120,11 @@ async def post_new(limit: int) -> int:
             posted += 1
     finally:
         await bot.session.close()
-    # журналы пишем один раз в конце — и локально так безопаснее (не будет
-    # полузаписанного состояния, если упадем посередине)
-    save_posted_ids(cfg.posted_path, posted_ids)
+        # журналы фиксируем всегда, в том числе при падении посередине
+        save_posted_ids(cfg.posted_path, posted_ids)
+        save_tracked(cfg.tracked_path, tracked)
+    if failed:
+        print(f"Failed posts: {failed}")
     try:
         ep_posts = await check_tracked(bot, cfg, tracked)
         print(f"Episode posts: {ep_posts}")
@@ -127,7 +157,12 @@ async def check_tracked(bot: Bot, cfg, tracked: dict) -> int:
             tracked.pop(rid_str, None)  # завершен — снимаем с наблюдения
             continue
         new_count = len(r.get("episodes") or [])
-        meta = tracked[rid_str] or {}
+        # meta может быть пустым словарём или мусором из старого журнала:
+        # setdefault + проверка типа, иначе апдейт count уходил в никуда
+        meta = tracked.get(rid_str)
+        if not isinstance(meta, dict):
+            meta = {}
+            tracked[rid_str] = meta
         old_count = int(meta.get("count") or 0)
         if new_count <= 0 or new_count <= old_count:
             meta["count"] = max(old_count, new_count)
@@ -142,12 +177,15 @@ async def check_tracked(bot: Bot, cfg, tracked: dict) -> int:
         )
         try:
             if img:
-                await bot.send_photo(cfg.channel_id, img, caption=text[:1000], reply_markup=kb)
+                await bot.send_photo(cfg.channel_id, img, caption=clamp_html(text), reply_markup=kb)
             else:
-                await bot.send_message(cfg.channel_id, text[:1000], reply_markup=kb)
+                await bot.send_message(cfg.channel_id, clamp_html(text), reply_markup=kb)
         except Exception:
             continue
         meta["count"] = new_count
+        # фиксируем сразу: иначе после падения на следующем релизе
+        # эта же серия уйдет в канал повторно
+        save_tracked(cfg.tracked_path, tracked)
         made += 1
     return made
 

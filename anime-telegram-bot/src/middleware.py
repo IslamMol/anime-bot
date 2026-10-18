@@ -20,11 +20,14 @@ class ThrottleMiddleware(BaseMiddleware):
         self._warned: dict[int, float] = {}
 
     def _prune(self, now: float) -> None:
-        # чтобы словарь не рос бесконечно на большом числе пользователей
+        # чтобы словари не росли бесконечно на большом числе пользователей
         if len(self._hits) < 2000:
             return
         for uid in [u for u, q in self._hits.items() if not q or now - q[-1] > self.window]:
             self._hits.pop(uid, None)
+        # _warned чистим вместе с _hits, иначе он тихо растет по всем, кого предупреждали
+        for uid, ts in [i for i in self._warned.items() if now - i[1] > self.window]:
+            self._warned.pop(uid, None)
 
     async def __call__(self, handler, event: TelegramObject, data: dict):
         user = data.get("event_from_user")

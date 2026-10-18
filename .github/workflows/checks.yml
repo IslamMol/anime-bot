@@ -1,0 +1,75 @@
+name: checks
+
+# Быстрые проверки проекта: синтаксис Python, валидность JSON-журналов,
+# синтаксис инлайн-JS в WebApp, наличие иконок из манифеста.
+# Ничего не деплоит — только проверяет, чтобы ошибки не уезжали в прод.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Python — синтаксис
+        run: python -m compileall -q anime-telegram-bot/src
+
+      - name: JSON-журналы — валидность
+        run: |
+          python - <<'PY'
+          import glob, json
+          for p in sorted(glob.glob("anime-telegram-bot/data/*.json")):
+              json.load(open(p, encoding="utf-8-sig"))
+              print("ok", p)
+          PY
+
+      - name: WebApp — синтаксис инлайн-JS
+        run: |
+          node --check anime-telegram-bot/webapp/sw.js
+          python - <<'PY'
+          import re, subprocess, tempfile, os, sys
+          html = open("anime-telegram-bot/webapp/index.html", encoding="utf-8").read()
+          blocks = re.findall(r"(?s)<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", html)
+          d = tempfile.mkdtemp()
+          for i, b in enumerate(blocks):
+              p = os.path.join(d, f"b{i}.js")
+              open(p, "w", encoding="utf-8").write(b)
+              r = subprocess.run(["node", "--check", p])
+              if r.returncode:
+                  sys.exit(r.returncode)
+          print("checked", len(blocks), "block(s)")
+          PY
+
+      - name: Иконки приложения на месте
+        run: |
+          python - <<'PY'
+          import json, os, sys
+          m = json.load(open("anime-telegram-bot/webapp/manifest.webmanifest", encoding="utf-8"))
+          missing = [i["src"] for i in m["icons"]
+                     if not os.path.exists(os.path.join("anime-telegram-bot/webapp", i["src"]))]
+          if missing:
+              print("нет иконок:", missing)
+              sys.exit(1)
+          print("иконки ок:", [i["sizes"] for i in m["icons"]])
+          PY
