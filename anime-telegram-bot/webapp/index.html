@@ -38,6 +38,10 @@
     font-size: 14px; line-height: 1.4;
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
+  /* PWA на весь экран (iOS: black-translucent): контент заходит под строку статуса.
+     Отодвигаем шапку на безопасную зону, иначе лого/поиск оказываются под часами.
+     В Telegram и в обычном браузере inset = 0, поведение не меняется. */
+  body { padding-top: calc(env(safe-area-inset-top, 0px) + 2px); }
   button, a, [role="button"] { touch-action: manipulation; }
   button, .tab, .chip, .card { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .wrap { max-width: 720px; margin: 0 auto; padding: 0 var(--pad); }
@@ -374,6 +378,20 @@
     background: var(--grad); border-color: transparent; color: #fff;
     box-shadow: 0 4px 14px rgba(124,92,240,.4);
   }
+  /* раскрывающаяся панель фильтров поиска: сетка чипов выбранной группы */
+  .fpanel {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 10px;
+    animation: viewIn 160ms var(--ease-out);
+  }
+  .fpanel button {
+    background: var(--btn); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+  }
+  .fpanel button.active {
+    background: var(--grad); border-color: transparent; color: #fff;
+    box-shadow: 0 4px 14px rgba(124,92,240,.4);
+  }
+  .fpanel button:active { transform: scale(.96); }
   .lucky { margin-left: auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
     border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
@@ -539,9 +557,12 @@
       <input id="q" placeholder="Название аниме…" enterkeyhint="search" autocomplete="off" />
       <button id="qGo" aria-label="Найти">Найти</button>
     </div>
+    <div class="gchips" id="fchips"></div>
+    <div class="fpanel hidden" id="fpanel"></div>
     <div class="gchips hidden" id="histRow"></div>
     <div class="grid" id="grid-search"></div>
-    <div class="warn hidden" id="searchHint">Введи название — ищет по каталогу Anilibria.</div>
+    <button class="more-btn hidden" id="searchMore">Показать ещё</button>
+    <div class="warn" id="searchHint">Введи название или выбери жанр/год — ищет по каталогу Anilibria.</div>
   </div>
 
   <!-- ТАЙТЛ -->
@@ -681,6 +702,7 @@
       try { video.pause(); } catch (e) {}
       try { stopNext(); } catch (e) {}
       if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+      resetPlayer(); // убираем кадр/источник прошлого тайтла из <video>
     }
     for (const k of Object.keys(views)) views[k].classList.toggle("hidden", k !== name);
     document.querySelectorAll("[data-nav]").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
@@ -757,6 +779,11 @@
     el.innerHTML = "";
     const frag = document.createDocumentFragment();
     items.forEach(r => frag.appendChild(cardEl(r, hero)));
+    el.appendChild(frag);
+  }
+  function appendGrid(el, items) {
+    const frag = document.createDocumentFragment();
+    items.forEach(r => frag.appendChild(cardEl(r, false)));
     el.appendChild(frag);
   }
 
@@ -1117,6 +1144,158 @@
     finally { btn.disabled = false; }
   };
   let searchTimer = null, searchCtl = null;
+  // --- ПОИСК ПО ЗНАЧЕНИЯМ (жанр/год/тип/онгоинги) и текстом ---
+  // Особенность API Anilibria (проверено живыми запросами):
+  //  • «текст + жанр» вместе сервер не умеет — всегда пусто → жанр фильтруем на клиенте;
+  //  • жанр + год/тип, текст + год/тип комбинируются нормально.
+  const searchQ = { text: "", genre: null, year: null, type: null, ongoing: false };
+  const searchRes = { page: 0, busy: false, done: false };
+  const SEARCH_PAGE = 18;
+  let searchPanel = null;          // открытая группа фильтров ("genre"|"year"|"type"|null)
+  let searchGenres = null;         // кэш списка жанров
+  const TYPE_OPTS = [
+    { v: "tv", t: "ТВ-сериал" }, { v: "movie", t: "Фильм" },
+    { v: "ova", t: "OVA" }, { v: "ona", t: "ONA" }, { v: "special", t: "Спешл" },
+  ];
+  const YEAR_OPTS = [
+    { t: "2026", from: 2026, to: 2026 }, { t: "2025", from: 2025, to: 2025 },
+    { t: "2024", from: 2024, to: 2024 }, { t: "2023", from: 2023, to: 2023 },
+    { t: "2022", from: 2022, to: 2022 }, { t: "2021", from: 2021, to: 2021 },
+    { t: "2020 и старше", from: 2020 },
+  ];
+  const searchHasFilters = () => !!(searchQ.genre || searchQ.year || searchQ.type || searchQ.ongoing);
+  function renderSearchChips() {
+    const row = $("fchips");
+    row.innerHTML = "";
+    const mk = (label, active, onclick) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      if (active) b.classList.add("active");
+      b.onclick = onclick;
+      row.appendChild(b);
+    };
+    mk(searchQ.genre ? "Жанр: " + searchQ.genre.name : "Жанр", !!searchQ.genre, () => toggleSearchPanel("genre"));
+    mk(searchQ.year ? "Год: " + searchQ.year.t : "Год", !!searchQ.year, () => toggleSearchPanel("year"));
+    mk(searchQ.type ? "Тип: " + searchQ.type.t : "Тип", !!searchQ.type, () => toggleSearchPanel("type"));
+    mk("Онгоинги", searchQ.ongoing, () => { searchQ.ongoing = !searchQ.ongoing; closeSearchPanel(); doSearch($("q").value, true); });
+    if (searchHasFilters()) mk("Сбросить", false, () => {
+      searchQ.genre = null; searchQ.year = null; searchQ.type = null; searchQ.ongoing = false;
+      closeSearchPanel(); renderSearchChips(); doSearch($("q").value, true);
+    });
+  }
+  function closeSearchPanel() {
+    searchPanel = null;
+    $("fpanel").classList.add("hidden");
+    $("fpanel").innerHTML = "";
+  }
+  function toggleSearchPanel(group) {
+    if (searchPanel === group) { closeSearchPanel(); return; }
+    searchPanel = group;
+    renderSearchPanel();
+  }
+  function panelOpt(group, o) {
+    // клик по варианту: применяем, закрываем панель, запускаем поиск заново
+    if (group === "genre") searchQ.genre = o.v ? { id: o.v, name: o.t } : null;
+    if (group === "year") searchQ.year = o.v || null;
+    if (group === "type") searchQ.type = o.v ? { v: o.v, t: o.t } : null;
+    closeSearchPanel();
+    renderSearchChips();
+    doSearch($("q").value, true);
+  }
+  function addPanelOpts(box, group, opts) {
+    opts.forEach((o) => {
+      const b = document.createElement("button");
+      b.textContent = o.t;
+      const sel = (group === "genre" && searchQ.genre && searchQ.genre.name === o.t)
+        || (group === "year" && searchQ.year && searchQ.year.t === o.t)
+        || (group === "type" && searchQ.type && searchQ.type.t === o.t);
+      if (sel) b.classList.add("active");
+      b.onclick = () => panelOpt(group, o);
+      box.appendChild(b);
+    });
+  }
+  async function renderSearchPanel() {
+    const box = $("fpanel");
+    box.classList.remove("hidden");
+    box.innerHTML = "";
+    const note = document.createElement("div");
+    note.className = "warn";
+    note.style.padding = "2px 0 6px";
+    note.textContent = searchPanel === "genre" ? "Выбери жанр:" : searchPanel === "year" ? "Выбери год:" : "Выбери тип:";
+    box.appendChild(note);
+    const clear = document.createElement("button");
+    clear.textContent = "Любой";
+    clear.onclick = () => panelOpt(searchPanel, { v: null, t: "" });
+    box.appendChild(clear);
+    if (searchPanel === "type") addPanelOpts(box, "type", TYPE_OPTS);
+    else if (searchPanel === "year") addPanelOpts(box, "year", YEAR_OPTS.map(y => ({ v: y, t: y.t })));
+    else {
+      // жанры тянем с API при первом открытии
+      const skel = document.createElement("div");
+      skel.className = "skel";
+      skel.style.cssText = "height:34px;width:100%";
+      box.appendChild(skel);
+      try {
+        if (!searchGenres) {
+          const j = await cj(`${API}/anime/genres`, 3600000);
+          searchGenres = (j.data || j || []).filter(g => g && g.name);
+        }
+      } catch (e) {
+        searchGenres = [];
+      }
+      if (searchPanel !== "genre") return; // пользователь уже закрыл/переключил панель
+      box.innerHTML = "";
+      const note2 = document.createElement("div");
+      note2.className = "warn";
+      note2.style.padding = "2px 0 6px";
+      note2.textContent = "Выбери жанр:";
+      box.appendChild(note2);
+      const clear2 = document.createElement("button");
+      clear2.textContent = "Любой";
+      clear2.onclick = () => panelOpt("genre", { v: null, t: "" });
+      box.appendChild(clear2);
+      addPanelOpts(box, "genre", searchGenres.map(g => ({ v: g.id, t: g.name })));
+    }
+  }
+  const hasGenre = (r, gid) => !!(r && Array.isArray(r.genres) && r.genres.some(g => g && Number(g.id) === Number(gid)));
+  function buildSearchUrl(pageN) {
+    // склеиваем вручную и НЕ кодируем квадратные скобки — так параметры
+    // передаются точно в том же виде, в котором их отдал сервер-прокси ботов
+    const parts = ["page=" + pageN, "limit=" + SEARCH_PAGE, "f[sorting]=RATING_DESC"];
+    if (searchQ.text) parts.push("f[search]=" + encodeURIComponent(searchQ.text));
+    if (searchQ.year) {
+      parts.push("f[years][from_year]=" + searchQ.year.from);
+      if (searchQ.year.to) parts.push("f[years][to_year]=" + searchQ.year.to);
+    }
+    if (searchQ.type) parts.push("f[types]=" + searchQ.type.v);
+    if (searchQ.ongoing) parts.push("f[publish_statuses]=IS_ONGOING");
+    if (searchQ.genre && !searchQ.text) parts.push("f[genres]=" + searchQ.genre.id);
+    return parts.join("&");
+  }
+  async function fetchSearchPage(pageN, signal) {
+    const gs = signal ? { signal } : undefined;
+    const j = await getJSON(`${API}/anime/catalog/releases?${buildSearchUrl(pageN)}`, gs);
+    let raw = (j.data || []).filter(r => r && r.id);
+    let items = raw;
+    if (searchQ.genre && searchQ.text) {
+      // сервер «текст + жанр» не поддерживает: фильтруем сами и добираем
+      // следующими страницами, чтобы у пользователя был выбор (макс. 2 доп. запроса)
+      const gid = searchQ.genre.id;
+      const seen = new Set(raw.map(r => r.id));
+      items = raw.filter(r => hasGenre(r, gid));
+      let p = pageN;
+      while (items.length < 12 && raw.length >= SEARCH_PAGE && p < pageN + 2) {
+        p += 1;
+        const jn = await getJSON(`${API}/anime/catalog/releases?${buildSearchUrl(p)}`, gs);
+        raw = (jn.data || []).filter(r => r && r.id);
+        const add = raw.filter(r => !seen.has(r.id));
+        if (!add.length) break;
+        add.forEach(r => seen.add(r.id));
+        items = items.concat(add.filter(r => hasGenre(r, gid)));
+      }
+    }
+    return items;
+  }
   function loadHist() {
     try {
       const h = JSON.parse(localStorage.getItem("ani_hq") || "[]");
@@ -1148,28 +1327,72 @@
     });
   }
   renderHist();
+  renderSearchChips();
   async function doSearch(query, save) {
     const grid = $("grid-search"), hint = $("searchHint");
-    query = (query || "").trim();
-    if (query.length < 2) { grid.innerHTML = ""; hint.classList.remove("hidden"); return; }
+    searchQ.text = (query || "").trim();
+    const hasText = searchQ.text.length >= 2;
+    if (!hasText && !searchHasFilters()) {
+      grid.innerHTML = "";
+      $("searchMore").classList.add("hidden");
+      hint.classList.remove("hidden");
+      return;
+    }
     hint.classList.add("hidden");
+    if (save && hasText) saveHist(searchQ.text);
     grid.innerHTML = '<div class="skel" style="height:190px"></div>'.repeat(6);
+    if (searchCtl && searchCtl.abort) searchCtl.abort();
+    searchCtl = ("AbortController" in window) ? new AbortController() : null;
+    searchRes.page = 0; searchRes.done = false; searchRes.busy = false;
     try {
-      if (searchCtl && searchCtl.abort) searchCtl.abort();
-      searchCtl = ("AbortController" in window) ? new AbortController() : null;
-      const j = await getJSON(
-        `${API}/anime/catalog/releases?f[search]=${encodeURIComponent(query)}&page=1&limit=12`,
-        searchCtl ? { signal: searchCtl.signal } : undefined,
-      );
-      const items = j.data || [];
-      if (!items.length) { grid.innerHTML = '<div class="warn">Ничего не найдено.</div>'; return; }
+      const items = await fetchSearchPage(1, searchCtl ? searchCtl.signal : undefined);
+      if (!items.length) {
+        grid.innerHTML = '<div class="warn">Ничего не найдено. Попробуй убрать часть фильтров.</div>';
+        $("searchMore").classList.add("hidden");
+        return;
+      }
+      grid.innerHTML = "";
       fillGrid(grid, items);
-      if (save) saveHist(query);
+      searchRes.page = 1;
+      searchRes.done = items.length < SEARCH_PAGE && !(searchQ.genre && searchQ.text);
+      $("searchMore").classList.toggle("hidden", searchRes.done);
     } catch (e) {
       if (e && e.name === "AbortError") return;
       grid.innerHTML = '<div class="warn">Ошибка поиска.</div>';
     }
   }
+  $("searchMore").onclick = async () => {
+    if (searchRes.busy || searchRes.done) return;
+    const grid = $("grid-search"), moreBtn = $("searchMore");
+    searchRes.busy = true;
+    moreBtn.disabled = true; moreBtn.textContent = "Загрузка…";
+    if (searchCtl && searchCtl.abort) searchCtl.abort();
+    searchCtl = ("AbortController" in window) ? new AbortController() : null;
+    try {
+      const got = await fetchSearchPage(searchRes.page + 1, searchCtl ? searchCtl.signal : undefined);
+      // дедуп только внутри выборки: карточки предыдущих страниц уже отрисованы
+      const existing = new Set();
+      const add = got.filter(r => { if (existing.has(r.id)) return false; existing.add(r.id); return true; });
+      if (!add.length) { searchRes.done = true; moreBtn.classList.add("hidden"); toast("Это всё, что нашлось."); return; }
+      appendGrid(grid, add);
+      searchRes.page += 1;
+      searchRes.done = got.length < SEARCH_PAGE && !(searchQ.genre && searchQ.text);
+      moreBtn.classList.toggle("hidden", searchRes.done);
+    } catch (e) {
+      if (!(e && e.name === "AbortError")) toast("Не подгрузилось: " + ((e && e.message) || e));
+    } finally {
+      searchRes.busy = false;
+      moreBtn.disabled = false; moreBtn.textContent = "Показать ещё";
+    }
+  };
+  $("q").addEventListener("input", (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => doSearch(e.target.value), 400);
+  });
+  $("q").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.target.blur(); doSearch(e.target.value, true); }
+  });
+  $("qGo").onclick = () => doSearch($("q").value, true);
   $("q").addEventListener("input", (e) => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => doSearch(e.target.value), 400);
@@ -1244,9 +1467,34 @@
   // --- тайтл ---
   const video = $("v"), box = $("eps");
   let releaseId = null, epsList = [], curIdx = 0, page = 0, hls = null, curRelease = null, animego = "", title = "";
-  let hlsRetry = 0, pendingSeek = 0, lastSave = 0, sourceChanging = false;
+  let hlsRetry = 0, pendingSeek = 0, lastSave = 0, sourceChanging = false, srcResetTimer = null, titleToken = 0;
+  function resetPlayer() {
+    // Полная очистка плеера. Без нее видео прошлого тайтла физически остается
+    // в <video> (последний кадр + длительность + прогресс), и новый тайтл
+    // на экране выглядел как «включена серия другого аниме».
+    try { video.pause(); } catch (e) {}
+    try { video.removeAttribute("src"); video.load(); } catch (e) {}
+    for (const id of ["pbuf", "pfill", "ctBuf", "ctFill"]) {
+      const el = $(id);
+      if (el) el.style.width = "0%";
+    }
+    const knob = $("ctKnob");
+    if (knob) knob.style.left = "0%";
+    const cur = $("ctCur"), dur = $("ctDur");
+    if (cur) cur.textContent = "0:00";
+    if (dur) dur.textContent = "0:00";
+    pendingSeek = 0;
+    showSpin(false);
+  }
   function playUrl(url, autoplay = true) {
-    if (!url) return;
+    if (!url) {
+      // у серии нет ссылки в выбранном качестве: УБИРАЕМ старый источник, иначе
+      // на экране останется предыдущее видео (выглядит как «не тот эпизод»)
+      resetPlayer();
+      sourceChanging = false;
+      toast("Видео для этой серии пока нет — попробуй другое качество.");
+      return;
+    }
     if (autoplay) showSpin(true);
     hlsRetry = 0;
     // hls.js тянется с CDN и может не загрузиться (блокировка, офлайн-режим):
@@ -1287,6 +1535,7 @@
           try { hls.recoverMediaError(); return; } catch (e) {}
         }
         showSpin(false);
+        sourceChanging = false; // фатальная ошибка — переключение источника не завершится
         toast("Видео не загрузилось. Попробуй другую серию.");
       });
       hls.loadSource(url);
@@ -1315,7 +1564,11 @@
     renderEpCard(ep);
     renderSkips(ep);
     sourceChanging = true;
+    clearTimeout(srcResetTimer);
     video.addEventListener("loadedmetadata", () => { sourceChanging = false; }, { once: true });
+    // страховка: если новый источник так и не загрузился, таймер сбросит флаг —
+    // тогда savePos снова начнет работать (защита от «зависшего» флага)
+    srcResetTimer = setTimeout(() => { sourceChanging = false; }, 8000);
     playUrl(epUrl(ep), autoplay);
     if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} }
   }
@@ -2035,8 +2288,14 @@
 
   async function openTitle(id) {
     if (releaseId && epsList.length) savePos();
+    // быстрый тап по двум разным карточкам: кто открылся последним, тот и жив.
+    // Устаревший ответ сети отбрасываем по токену (guard ниже после Promise.all).
+    const myToken = ++titleToken;
     sourceChanging = true;
     nav("title");
+    // старый кадр/источник из <video> гасим сразу — до ответа сети, иначе
+    // пока грузится новый тайтл, на экране висит серия предыдущего
+    resetPlayer();
     showTab("A");
     box.innerHTML = '<div class="warn">Загрузка серий…</div>';
     $("epsInfo").textContent = ""; $("seasons").innerHTML = ""; $("goFrame").innerHTML = "";
@@ -2064,6 +2323,7 @@
       hideBoot(); // иначе при переходе по ссылке из бота спиннер висит до самого таймаута
       return;
     }
+    if (myToken !== titleToken) return; // пока грузились, открыли другой тайтл — данные устарели
     const meta = mRes.data || mRes;
     curRelease = meta;
     const t = titleOf(curRelease);
