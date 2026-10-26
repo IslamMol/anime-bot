@@ -60,17 +60,19 @@
   }
   .back:active { transform: scale(.94); }
 
-  .sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 2px 8px; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 2px 8px; }
   .sec-head b { font-size: 15px; letter-spacing: .1px; display: flex; align-items: center; gap: 7px; }
   .sec-head b::before { content: ""; width: 3px; height: 14px; border-radius: 999px; background: var(--grad); }
-  .sec-head button { background: none; border: 0; color: var(--acc); font-size: 12.5px; font-weight: 700; padding: 4px 2px; }
+  .sec-head button { background: none; border: 0; color: var(--acc); font-size: 12.5px; font-weight: 700;
+    padding: 4px 6px; min-height: 36px; display: inline-flex; align-items: center; }
   .hero { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 0 0 6px;
     scroll-snap-type: x mandatory; scrollbar-width: none;
     -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
   .hero::-webkit-scrollbar { display: none; }
   .hero .card { scroll-snap-align: start; flex: 0 0 148px; position: relative; }
   .hero img { height: 202px; }
-  .hero-btn { display: inline-flex; align-items: center; gap: 2px; }
+  .hero-btn { display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+    min-width: 36px; min-height: 36px; }
   /* hero-баннер топ-1 */
   #feat { position: relative; border-radius: 16px; overflow: hidden; margin: 6px 0 2px;
     min-height: 190px; display: flex; align-items: flex-end; border: 1px solid var(--line); box-shadow: var(--shadow); }
@@ -125,10 +127,18 @@
   @media (prefers-reduced-motion: reduce) { .skel { animation: none; } * { transition-duration: 0ms !important; } }
 
   .searchbar { display: flex; gap: 8px; padding: 6px 0 10px; }
+  .q-wrap { flex: 1; position: relative; display: flex; min-width: 0; }
   .searchbar input {
     flex: 1; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 10px; padding: 0 12px; min-height: 44px; font-size: 16px; outline: none; min-width: 0;
+    border-radius: 10px; padding: 0 40px 0 12px; min-height: 44px; font-size: 16px; outline: none; min-width: 0;
   }
+  .searchbar input::-webkit-search-cancel-button { display: none; }
+  .searchbar .q-clear {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; min-height: 0; min-width: 0; padding: 0; border: 0; border-radius: 50%;
+    background: rgba(255,255,255,.10); color: var(--muted); font-size: 19px; line-height: 1;
+  }
+  .searchbar .q-clear:active { background: rgba(255,255,255,.18); }
   .searchbar input:focus { border-color: var(--acc); }
   .searchbar button {
     background: var(--acc); color: #fff; border: 0; border-radius: 10px;
@@ -188,11 +198,13 @@
   /* .player — обычный блок: position: sticky здесь не работает из-за overflow у html/body,
      поэтому оставляем relative (он же containing block для спиннера, панели и вспышки) */
   .player { position: relative; z-index: 5; background: var(--bg); padding-top: 2px; }
-  video { width: 100%; aspect-ratio: 16/9; max-height: 34dvh; background: #000; border-radius: var(--radius);
+  video { display: block; width: 100%; aspect-ratio: 16/9; max-height: 34dvh; background: #000; border-radius: var(--radius);
     box-shadow: 0 10px 34px rgba(124,92,240,.22), 0 2px 10px rgba(0,0,0,.5); }
   .eps-head { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 2px 4px; }
   .eps-head b { font-size: 12.5px; }
   .eps-head span { font-size: 11.5px; color: var(--muted); }
+  /* плеер теперь ПЕРВЫЙ экран тайтла: все его секции рисуем над фоновым постером */
+  #view-title > :not(#t-back) { position: relative; }
   .epcard { display: flex; gap: 10px; align-items: center; background: var(--card);
     border: 1px solid var(--line); border-radius: 12px; padding: 8px; margin: 2px 0 4px; }
   .epcard img { width: 96px; height: 54px; object-fit: cover; border-radius: 8px; background: var(--btn); flex: 0 0 auto; }
@@ -206,8 +218,8 @@
     border-radius: 8px; min-height: 34px; min-width: 34px; padding: 4px 10px; font-size: 13px;
   }
   .pager .page-label { flex: 1; text-align: center; font-size: 12px; color: var(--muted); }
-  /* пропуск опенинга/эндинга — поверх видео, справа внизу, появляется только в окне */
-  .skips { position: absolute; right: 8px; bottom: 10px; z-index: 7;
+  /* пропуск опенинга/эндинга — поверх видео, справа над панелью управления */
+  .skips { position: absolute; right: 8px; bottom: 56px; z-index: 9;
     display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
     transition: opacity .2s ease, transform .2s ease; }
   .skips.hiding { opacity: 0; transform: translateY(6px); pointer-events: none; }
@@ -256,8 +268,6 @@
     padding: 11px; font-weight: 700; font-size: 14px; margin: 2px 0 8px; min-height: 44px;
   }
   iframe.go { width: 100%; height: 62dvh; border: 0; border-radius: var(--radius); background: #fff; }
-  /* .player позиционируется выше (sticky): position: relative здесь только перебивал её,
-     а sticky сам является containing block для absolute-детей (спиннер, панель, вспышка). */
   .vspin { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .vspin span { width: 34px; height: 34px; border-radius: 50%;
     border: 3px solid rgba(255,255,255,.25); border-top-color: #fff;
@@ -365,11 +375,12 @@
     min-height: 40px; padding: 0 18px; font-size: 13px; font-weight: 700; }
   .nextup button.ghost { background: var(--btn); border: 1px solid var(--line); }
   .nextup button:active { transform: scale(.95); }
-  .gchips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; touch-action: pan-y; }
+  .gchips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; touch-action: pan-x pan-y; }
   .gchips::-webkit-scrollbar { display: none; }
   .gchips button {
     flex: 0 0 auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    border-radius: 999px; padding: 8px 13px; min-height: 36px; font-size: 12.5px; font-weight: 600;
+    display: inline-flex; align-items: center;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
   }
   .gchips button:hover { border-color: var(--acc); }
@@ -381,11 +392,14 @@
   /* раскрывающаяся панель фильтров поиска: сетка чипов выбранной группы */
   .fpanel {
     display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 10px;
+    max-height: 46vh; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     animation: viewIn 160ms var(--ease-out);
   }
   .fpanel button {
     background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    border-radius: 999px; padding: 9px 14px; min-height: 38px; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center;
   }
   .fpanel button.active {
     background: var(--grad); border-color: transparent; color: #fff;
@@ -393,18 +407,20 @@
   }
   .fpanel button:active { transform: scale(.96); }
   .lucky { margin-left: auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700;
+    border-radius: 999px; padding: 8px 14px; min-height: 36px; font-size: 12.5px; font-weight: 700;
+    display: inline-flex; align-items: center;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
   }
   .lucky:active { transform: scale(.96); }
   .lucky:hover { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc-soft); }
   .lucky:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 
-  .dubchips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; touch-action: pan-y; }
+  .dubchips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; touch-action: pan-x pan-y; }
   .dubchips::-webkit-scrollbar { display: none; }
   .dubchips button {
     flex: 0 0 auto; background: var(--btn); color: var(--txt); border: 1px solid var(--line);
-    border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    border-radius: 999px; padding: 8px 13px; min-height: 36px; font-size: 12.5px; font-weight: 600;
+    display: inline-flex; align-items: center;
     transition: transform 120ms var(--ease-out), background 120ms, border-color 120ms, box-shadow 120ms;
   }
   .dubchips button:hover { border-color: var(--acc); }
@@ -502,12 +518,12 @@
 <div class="wrap">
   <!-- ГЛАВНАЯ -->
   <div class="view" id="view-home">
-    <div class="topbar"><div class="logo">Ani<span>Catalog</span></div><button class="lucky" id="lucky">Random</button></div>
+    <div class="topbar"><div class="logo">Ani<span>Catalog</span></div><button class="lucky" id="lucky">Случайное</button></div>
     <div id="feat" class="hidden">
       <img id="featImg" alt="" />
       <div class="feat-grad"></div>
       <div class="feat-info">
-        <div class="feat-kicker">Топ недели • №1</div>
+        <div class="feat-kicker">Новое в озвучке</div>
         <div class="feat-title" id="featTitle"></div>
         <div class="feat-meta" id="featMeta"></div>
         <button class="feat-btn" id="featBtn">Смотреть</button>
@@ -519,9 +535,9 @@
       <div class="sec-head"><b>Продолжить просмотр</b><button id="contClear">Очистить</button></div>
       <div class="hero" id="contRow"></div>
     </div>
-    <div class="sec-head"><b>Сейчас смотрят</b><button class="hero-btn" id="heroAll" aria-label="Листать"><i class="ic i-chevR"></i></button></div>
+    <div class="sec-head"><b>Свежее в озвучке</b><button class="hero-btn" id="heroAll" aria-label="Листать"><i class="ic i-chevR"></i></button></div>
     <div class="hero" id="hero"><div class="skel" style="flex:0 0 148px;height:238px"></div><div class="skel" style="flex:0 0 148px;height:238px"></div><div class="skel" style="flex:0 0 148px;height:238px"></div></div>
-    <div class="sec-head"><b>Новинки 2026</b><button data-list="new2026">Все</button></div>
+    <div class="sec-head"><b id="newTitle">Новинки</b><button data-list="new2026">Все</button></div>
     <div class="grid" id="grid-new"></div>
     <button class="more-btn hidden" id="more-new">Показать еще</button>
     <div class="sec-head"><b>Онгоинги</b><button data-list="ongoing">Все</button></div>
@@ -554,7 +570,10 @@
   <div class="view hidden" id="view-search">
     <div class="topbar"><div class="logo">Поиск</div></div>
     <div class="searchbar">
-      <input id="q" placeholder="Название аниме…" enterkeyhint="search" autocomplete="off" />
+      <div class="q-wrap">
+        <input id="q" type="search" placeholder="Название аниме…" aria-label="Поиск аниме по названию" enterkeyhint="search" autocomplete="off" />
+        <button class="q-clear hidden" id="qClear" aria-label="Очистить поле">×</button>
+      </div>
       <button id="qGo" aria-label="Найти">Найти</button>
     </div>
     <div class="gchips" id="fchips"></div>
@@ -576,15 +595,6 @@
         <div class="chips" id="t-chips"></div>
       </div>
     </div>
-    <div class="facts" id="t-facts"></div>
-    <div class="desc" id="t-desc"></div>
-    <button class="more hidden" id="t-more">Показать полностью</button>
-    <div class="star-row"><button id="t-fav">В избранное</button></div>
-    <div class="netrow search-row"><span>Нет нужной серии?</span><button id="netYt">YouTube</button><button id="netVk">VK Видео</button><button id="netVost">AnimeVost</button><button id="netWeb">Поиск в интернете</button></div>
-    <div class="netrow"><span>Читать оригинал:</span><button id="mgRm"><i class="ic i-book"></i>ReManga</button><button id="mgMl"><i class="ic i-book"></i>MangaLib</button></div>
-    <div class="sub" id="count" style="font-size:12px;color:var(--muted);padding:2px 0 6px"></div>
-    <div id="seasons"></div>
-    <div class="dubchips hidden" id="dubchips"></div>
     <div class="tabs" role="tablist" aria-label="Источник серий">
       <button id="tabA" class="active" role="tab" aria-selected="true" aria-controls="paneA" tabindex="0">Anilibria</button>
       <button id="tabG" role="tab" aria-selected="false" aria-controls="paneG" tabindex="-1">Все серии</button>
@@ -614,6 +624,15 @@
       <a class="open-btn" id="goOpen" href="#" target="_blank" rel="noopener">Открыть плеер AnimeGO</a>
       <div id="goFrame"></div>
     </div>
+    <div class="sub" id="count" style="font-size:12px;color:var(--muted);padding:2px 0 6px"></div>
+    <div class="dubchips hidden" id="dubchips"></div>
+    <div id="seasons"></div>
+    <div class="facts" id="t-facts"></div>
+    <div class="desc" id="t-desc"></div>
+    <button class="more hidden" id="t-more">Показать полностью</button>
+    <div class="star-row"><button id="t-fav">В избранное</button></div>
+    <div class="netrow search-row"><span>Нет нужной серии?</span><button id="netYt">YouTube</button><button id="netVk">VK Видео</button><button id="netVost">AnimeVost</button><button id="netWeb">Поиск в интернете</button></div>
+    <div class="netrow"><span>Читать оригинал:</span><button id="mgRm"><i class="ic i-book"></i>ReManga</button><button id="mgMl"><i class="ic i-book"></i>MangaLib</button></div>
   </div>
 
   <!-- ИЗБРАННОЕ -->
@@ -695,7 +714,37 @@
 
   // --- навигация ---
   const views = { home: $("view-home"), list: $("view-list"), sched: $("view-sched"), search: $("view-search"), title: $("view-title"), favs: $("view-favs") };  let lastList = "home";
-  function nav(name) {
+  // Позиция прокрутки запоминается для каждого экрана: вернувшись из тайтла,
+  // пользователь остаётся там же в списке, а не в самом верху.
+  const scrollMem = Object.create(null);
+  let curView = "home";
+  try { if ("scrollRestoration" in history) history.scrollRestoration = "manual"; } catch (e) {}
+  // Системная «Назад» (Android, жест Safari, кнопка Telegram) должна возвращать
+  // на предыдущий экран, а не закрывать WebApp. Держим историю в history.state.
+  const navState = () => (history.state && typeof history.state === "object" && history.state.view) ? history.state : null;
+  function nav(name, opts) {
+    const push = !opts || opts.push !== false;
+    const stId = (name === "title") ? ((opts && opts.id) || releaseId || null) : null;
+    const st = { view: name, id: stId };
+    if (push) {
+      try {
+        const cur = navState();
+        if (!cur) {
+          // глубокая ссылка из бота: базовый экран «главная» + текущий сверху,
+          // иначе системная «Назад» закрывала бы приложение
+          history.replaceState({ view: "home", id: null }, "", location.href);
+          if (name !== "home") history.pushState(st, "", location.href);
+        } else if (cur.view !== name || (name === "title" && stId && String(cur.id) !== String(stId))) {
+          history.pushState(st, "", location.href);
+        } else if (name === "title") {
+          history.replaceState(st, "", location.href);
+        }
+      } catch (e) {}
+    }
+    // BackButton Telegram показываем на всех экранах, кроме главной
+    if (tg && tg.BackButton) {
+      try { if (name === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {}
+    }
     // Уходим с экрана тайтла — глушим видео, снимаем отсчёт «следующая серия»
     // и убиваем HLS: иначе звук и загрузка сегментов продолжаются в фоне.
     if (name !== "title") {
@@ -703,13 +752,37 @@
       try { stopNext(); } catch (e) {}
       if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
       resetPlayer(); // убираем кадр/источник прошлого тайтла из <video>
+      document.title = "AniCatalog — аниме в русской озвучке";
     }
+    if (curView !== name) scrollMem[curView] = window.scrollY || 0;
     for (const k of Object.keys(views)) views[k].classList.toggle("hidden", k !== name);
     document.querySelectorAll("[data-nav]").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
     if (name !== "title") lastList = name;
-    window.scrollTo({ top: 0 });
+    const to = (opts && opts.top) ? 0 : (scrollMem[name] || 0);
+    requestAnimationFrame(() => window.scrollTo(0, to));
+    curView = name;
     if (name === "favs") renderFavs();
     if (name === "home") renderContinue(false);
+  }
+  window.addEventListener("popstate", (e) => {
+    const st = e.state;
+    const v = (st && views[st.view]) ? st.view : "home";
+    // Возврат «вперёд» на другой тайтл: подтягиваем именно его, а не прошлый экран
+    if (v === "title" && st && st.id && String(st.id) !== String(releaseId)) {
+      openTitle(st.id);
+      return;
+    }
+    if (v === "home" && !homeLoaded) { loadHome(); loadGenres(); }
+    nav(v, { push: false });
+  });
+  if (tg && tg.BackButton) {
+    try {
+      tg.BackButton.onClick(() => {
+        const st = navState();
+        if (st && st.view !== "home") { try { history.back(); } catch (e) { nav("home", { push: false }); } }
+        else nav("home", { push: false });
+      });
+    } catch (e) {}
   }
   document.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => nav(b.dataset.nav));
   document.querySelectorAll("[data-back]").forEach(b => b.onclick = () => nav(lastList === "list" ? "home" : lastList));
@@ -728,6 +801,13 @@
     t.classList.add("show");
     clearTimeout(t._h);
     t._h = setTimeout(() => t.classList.remove("show"), 4500);
+  }
+  // Подтверждение для необратимых действий: родной диалог Telegram, иначе браузерный
+  function askConfirm(msg, cb) {
+    if (tg && tg.showConfirm) {
+      try { tg.showConfirm(msg, (ok) => { if (ok) cb(); }); return; } catch (e) {}
+    }
+    try { if (window.confirm(msg)) cb(); } catch (e) {}
   }
   window.addEventListener("error", (e) => { if (e.message) toast("Ошибка: " + e.message); });
   window.addEventListener("unhandledrejection", (e) => {
@@ -888,8 +968,10 @@
   }
 
   // --- главная: 4 витрины параллельно + потоковая подгрузка «Показать еще» ---
+  // Год берём текущий, а не зашитый: витрина не устареет в следующем январе.
+  const YEAR_NOW = new Date().getFullYear();
   const HOME_URL = {
-    new: (p) => `${API}/anime/catalog/releases?f[years][from_year]=2026&f[years][to_year]=2026&f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=${p}&limit=${GRID_N}`,
+    new: (p) => `${API}/anime/catalog/releases?f[years][from_year]=${YEAR_NOW}&f[years][to_year]=${YEAR_NOW}&f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=${p}&limit=${GRID_N}`,
     ongoing: (p) => `${API}/anime/catalog/releases?f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=${p}&limit=${GRID_N}`,
     top: (p) => `${API}/anime/catalog/releases?f[sorting]=RATING_DESC&page=${p}&limit=${GRID_N}`,
   };
@@ -922,7 +1004,10 @@
       } finally { homeBusy[key] = false; }
     };
   }
+  let homeLoaded = false;
   async function loadHome() {
+    const nt = $("newTitle");
+    if (nt) nt.textContent = "Новинки " + YEAR_NOW;
     const settled = await Promise.allSettled([
       cj(`${API}/anime/releases/latest?limit=8`, 180000).then(j => j.data || j),
       cj(HOME_URL.new(1), 180000).then(j => j.data || []),
@@ -975,6 +1060,7 @@
     armMore("new", n2026.length);
     armMore("ongoing", ongo.length);
     armMore("top", top.length);
+    homeLoaded = true;
     hideBoot();
     renderContinue(true);
     // стрелка листает ленту «Сейчас смотрят» на один экран
@@ -1022,8 +1108,8 @@
   // --- полные списки с пагинацией ---
   const LISTS = {
     new2026: {
-      title: "Новинки 2026",
-      url: (p) => `${API}/anime/catalog/releases?f[years][from_year]=2026&f[years][to_year]=2026&f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=${p}&limit=${LIST_N}`,
+      get title() { return "Новинки " + YEAR_NOW; },
+      url: (p) => `${API}/anime/catalog/releases?f[years][from_year]=${YEAR_NOW}&f[years][to_year]=${YEAR_NOW}&f[publish_statuses]=IS_ONGOING&f[sorting]=RATING_DESC&page=${p}&limit=${LIST_N}`,
     },
     ongoing: {
       title: "Онгоинги",
@@ -1157,12 +1243,13 @@
     { v: "tv", t: "ТВ-сериал" }, { v: "movie", t: "Фильм" },
     { v: "ova", t: "OVA" }, { v: "ona", t: "ONA" }, { v: "special", t: "Спешл" },
   ];
-  const YEAR_OPTS = [
-    { t: "2026", from: 2026, to: 2026 }, { t: "2025", from: 2025, to: 2025 },
-    { t: "2024", from: 2024, to: 2024 }, { t: "2023", from: 2023, to: 2023 },
-    { t: "2022", from: 2022, to: 2022 }, { t: "2021", from: 2021, to: 2021 },
-    { t: "2020 и старше", from: 2020 },
-  ];
+  const YEAR_OPTS = (() => {
+    const out = [];
+    for (let y = YEAR_NOW; y > YEAR_NOW - 6; y--) out.push({ t: String(y), from: y, to: y });
+    // «и старше» — это годы ДО указанного: API понимает to_year, а from_year дал бы новее
+    out.push({ t: `${YEAR_NOW - 6} и старше`, to: YEAR_NOW - 6 });
+    return out;
+  })();
   const searchHasFilters = () => !!(searchQ.genre || searchQ.year || searchQ.type || searchQ.ongoing);
   function renderSearchChips() {
     const row = $("fchips");
@@ -1264,7 +1351,7 @@
     const parts = ["page=" + pageN, "limit=" + SEARCH_PAGE, "f[sorting]=RATING_DESC"];
     if (searchQ.text) parts.push("f[search]=" + encodeURIComponent(searchQ.text));
     if (searchQ.year) {
-      parts.push("f[years][from_year]=" + searchQ.year.from);
+      if (searchQ.year.from) parts.push("f[years][from_year]=" + searchQ.year.from);
       if (searchQ.year.to) parts.push("f[years][to_year]=" + searchQ.year.to);
     }
     if (searchQ.type) parts.push("f[types]=" + searchQ.type.v);
@@ -1322,7 +1409,7 @@
     h.forEach((q) => {
       const b = document.createElement("button");
       b.textContent = q;
-      b.onclick = () => { $("q").value = q; doSearch(q); };
+      b.onclick = () => { $("q").value = q; syncQClear(); doSearch(q); };
       row.appendChild(b);
     });
   }
@@ -1385,20 +1472,28 @@
       moreBtn.disabled = false; moreBtn.textContent = "Показать ещё";
     }
   };
+  function syncQClear() {
+    const has = !!($("q").value || "").trim();
+    $("qClear").classList.toggle("hidden", !has);
+  }
   $("q").addEventListener("input", (e) => {
+    syncQClear();
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => doSearch(e.target.value), 400);
   });
   $("q").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.target.blur(); doSearch(e.target.value, true); }
+    if (e.key === "Enter") { e.preventDefault(); e.target.blur(); doSearch(e.target.value, true); }
   });
   $("qGo").onclick = () => doSearch($("q").value, true);
-  $("q").addEventListener("input", (e) => {
+  $("qClear").onclick = () => {
+    const q = $("q");
+    q.value = "";
+    syncQClear();
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => doSearch(e.target.value), 400);
-  });
-  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(e.target.value, true); });
-  $("qGo").onclick = () => doSearch($("q").value, true);
+    doSearch("");
+    q.focus();
+  };
+  syncQClear();
 
   // --- избранное: CloudStorage в TG + зеркало в localStorage ---
   // зеркало нужно потому что CloudStorage на части клиентов висит без ответа —
@@ -1484,6 +1579,8 @@
     if (cur) cur.textContent = "0:00";
     if (dur) dur.textContent = "0:00";
     pendingSeek = 0;
+    clearTimeout(srcResetTimer);
+    srcResetTimer = null;
     showSpin(false);
   }
   function playUrl(url, autoplay = true) {
@@ -1582,7 +1679,8 @@
       const gi = epsList.indexOf(ep);
       const b = document.createElement("button");
       b.textContent = ep.ordinal;
-      if (gi === curIdx) b.classList.add("active");
+      b.setAttribute("aria-label", "Серия " + ep.ordinal);
+      if (gi === curIdx) { b.classList.add("active"); b.setAttribute("aria-current", "true"); }
       b.onclick = () => playIdx(gi);
       frag.appendChild(b);
     });
@@ -1628,6 +1726,14 @@
     g._h = setTimeout(() => g.classList.add("hidden"), 800);
   }
   let lastTap = 0, volStartY = 0, volStart = 1, volMoved = false;
+  // на iOS Safari свойство video.volume только для чтения: свайп громкости
+  // ничего бы не менял, а индикатор врал. Проверяем возможность один раз.
+  let canSetVolume = true, volHintShown = false;
+  try {
+    const tv = document.createElement("video");
+    tv.volume = 0.5;
+    canSetVolume = Math.abs((tv.volume || 0) - 0.5) < 0.05;
+  } catch (e) { canSetVolume = false; }
   video.addEventListener("touchstart", (e) => {
     const t = e.touches[0];
     volStartY = t.clientY; volStart = video.volume; volMoved = false;
@@ -1636,9 +1742,14 @@
     const dy = volStartY - e.touches[0].clientY;
     if (Math.abs(dy) > 24) {
       volMoved = true;
-      video.volume = Math.min(1, Math.max(0, volStart + dy / 200));
-      gestShow("Громкость " + Math.round(video.volume * 100) + "%");
-      if (e.cancelable) e.preventDefault();
+      if (canSetVolume) {
+        video.volume = Math.min(1, Math.max(0, volStart + dy / 200));
+        gestShow("Громкость " + Math.round(video.volume * 100) + "%");
+      } else if (!volHintShown) {
+        volHintShown = true;
+        gestShow("Громкость — кнопками телефона");
+      }
+      if (canSetVolume && e.cancelable) e.preventDefault();
     }
   }, { passive: false });
   video.addEventListener("touchend", (e) => {
@@ -1772,14 +1883,16 @@
   const coarsePointer = matchMedia("(pointer: coarse)").matches;
   function scheduleCtlHide() {
     clearTimeout(ctlTimer);
-    if (!video.paused && !coarsePointer) ctlTimer = setTimeout(ctlHide, 5000);
+    // панель прячется сама на всех устройствах, пока видео играет:
+    // на телефоне чуть быстрее, чем на десктопе
+    if (!video.paused) ctlTimer = setTimeout(ctlHide, coarsePointer ? 3500 : 5000);
   }
   function ctlShow() {
     ctlEl.classList.add("show");
     scheduleCtlHide();
   }
   function ctlHide() {
-    if (video.paused || coarsePointer || ctlEl.matches(":hover") || ctlEl.contains(document.activeElement)) return;
+    if (video.paused || ctlEl.matches(":hover") || ctlEl.contains(document.activeElement)) return;
     ctlEl.classList.remove("show");
   }
   function ctlToggle() { ctlShow(); }
@@ -1838,6 +1951,31 @@
   });
   document.addEventListener("fullscreenchange", ctlShow);
   document.addEventListener("webkitfullscreenchange", ctlShow);
+  // клавиатура на десктопе: пробел/k — пауза, ←/→ — 5 сек, f — полный экран, m — звук
+  document.addEventListener("keydown", (e) => {
+    if (views.title.classList.contains("hidden")) return;
+    if (!video.getAttribute("src")) return;
+    const el = e.target;
+    const tag = (el && el.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || (el && el.isContentEditable)) return;
+    if (el && el.closest && el.closest("#ctSeek")) return; // стрелки на слайдере уже работают
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    if (k === " " || k === "k" || k === "K") {
+      e.preventDefault();
+      try { if (video.paused) video.play().catch(() => {}); else video.pause(); } catch (err) {}
+      ctlShow();
+    } else if (k === "ArrowRight" || k === "ArrowLeft") {
+      e.preventDefault();
+      const d = k === "ArrowRight" ? 5 : -5;
+      try { video.currentTime = Math.max(0, Math.min(video.duration || 1e9, video.currentTime + d)); } catch (err) {}
+      ctlShow();
+    } else if (k === "f" || k === "F") {
+      e.preventDefault(); $("ctlFs").click();
+    } else if (k === "m" || k === "M") {
+      e.preventDefault(); $("ctlMute").click();
+    }
+  });
   // перемотка: перетаскивание по таймлайну
   const seekEl = $("ctSeek");
   function seekFromEvent(e) {
@@ -1894,8 +2032,7 @@
     const pEl = video.closest(".player");
     if (pEl) pEl.classList.toggle("playing", !video.paused);
     syncAria();
-    if (video.paused) ctlShow(); // на паузе контролы видны всегда
-    else ctlShow();
+    ctlShow(); // на паузе контролы остаются видны, при игре — прячутся по таймеру
   }
   video.addEventListener("pause", ctlOnState);
   video.addEventListener("ended", ctlOnState);
@@ -1907,6 +2044,11 @@
   ctlShow(); // при открытии тайтла контролы видны, пока видео на паузе
   video.addEventListener("pause", savePos);
   window.addEventListener("pagehide", savePos);
+  document.addEventListener("visibilitychange", () => {
+    // на мобильном сворачивание вкладки может не успеть послать pagehide —
+    // фиксируем позицию сразу при скрытии/появлении страницы
+    if (document.visibilityState === "hidden") savePos();
+  });
   function readPos() {
     try {
       const p = JSON.parse(localStorage.getItem(posKey()) || "null");
@@ -1985,9 +2127,11 @@
   markSeg();
   function epUrl(ep) {
     const q = vQuality;
-    if (q === "1080") return ep.hls_1080 || ep.hls_720 || ep.hls_480 || "";
     if (q === "720") return ep.hls_720 || ep.hls_480 || ep.hls_1080 || "";
     if (q === "480") return ep.hls_480 || ep.hls_720 || ep.hls_1080 || "";
+    if (q === "1080") return ep.hls_1080 || ep.hls_720 || ep.hls_480 || "";
+    // «Авто»: на телефонах — 720p (меньше трафика и лагов), на десктопе — 1080p
+    if (coarsePointer) return ep.hls_720 || ep.hls_1080 || ep.hls_480 || "";
     return ep.hls_1080 || ep.hls_720 || ep.hls_480 || "";
   }
   $("vQuality").addEventListener("click", (e) => {
@@ -2049,7 +2193,7 @@
         const b = document.createElement("button");
         b.className = "card";
         const img = document.createElement("img");
-        img.loading = "lazy"; img.alt = titleOf(meta); img.src = posterOf(meta);
+        img.loading = "lazy"; setImg(img, posterOf(meta), titleOf(meta));
         b.appendChild(img);
         const tag = document.createElement("span");
         tag.className = "cont-tag";
@@ -2076,15 +2220,19 @@
     if (!row.firstChild) sec.classList.add("hidden");
   }
   $("contClear").onclick = () => {
-    try {
-      const del = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith("pos:")) del.push(k);
-      }
-      del.forEach(k => localStorage.removeItem(k));
-    } catch (e) {}
-    renderContinue(true);
+    askConfirm("Очистить историю просмотра? Продолжить с места не получится.", () => {
+      try {
+        const del = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("pos:")) del.push(k);
+        }
+        del.forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
+      contDirty = true;
+      renderContinue(true);
+      toast("История просмотра очищена");
+    });
   };
 
   // --- озвучки: ищем остальные релизы с тем же shikimori_id ---
@@ -2292,7 +2440,7 @@
     // Устаревший ответ сети отбрасываем по токену (guard ниже после Promise.all).
     const myToken = ++titleToken;
     sourceChanging = true;
-    nav("title");
+    nav("title", { top: true, id: id });
     // старый кадр/источник из <video> гасим сразу — до ответа сети, иначе
     // пока грузится новый тайтл, на экране висит серия предыдущего
     resetPlayer();
