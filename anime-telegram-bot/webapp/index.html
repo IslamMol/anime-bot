@@ -24,6 +24,12 @@
     --bg: #0b0a10; --card: #14131a; --btn: #1d1c26; --txt: #ffffff;
     --muted: #848895; --acc: #7c5cf0; --acc-soft: rgba(124,92,240,.16); --line: rgba(255,255,255,.10);
     --radius: 12px; --pad: 12px;
+    --tg-safe-top: 0px; --tg-safe-bottom: 0px; --tg-safe-left: 0px; --tg-safe-right: 0px;
+    --safe-top: max(env(safe-area-inset-top, 0px), var(--tg-safe-top));
+    --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-bottom));
+    --safe-left: max(env(safe-area-inset-left, 0px), var(--tg-safe-left));
+    --safe-right: max(env(safe-area-inset-right, 0px), var(--tg-safe-right));
+    --nav-height: 60px;
     --ease-out: cubic-bezier(.23,1,.32,1);
     --grad: linear-gradient(135deg, var(--acc), #b388ff);
     --shadow: 0 8px 24px rgba(0,0,0,.45);
@@ -36,22 +42,22 @@
     margin: 0; background: var(--bg); color: var(--txt);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 14px; line-height: 1.4;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 8px);
   }
   /* PWA на весь экран (iOS: black-translucent): контент заходит под строку статуса.
      Отодвигаем шапку на безопасную зону, иначе лого/поиск оказываются под часами.
      В Telegram и в обычном браузере inset = 0, поведение не меняется. */
-  body { padding-top: calc(env(safe-area-inset-top, 0px) + 2px); }
+  body { padding-top: var(--safe-top); }
   button, a, [role="button"] { touch-action: manipulation; }
   button, .tab, .chip, .card { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 0 var(--pad); }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 max(var(--pad), var(--safe-right)) 0 max(var(--pad), var(--safe-left)); }
   .view.hidden, .hidden { display: none !important; }
 
   .view { animation: viewIn 220ms var(--ease-out); }
   @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .view { animation: none; } }
 
-  .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 0 4px; }
+  .topbar { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 0; }
   .logo { font-weight: 800; font-size: 17px; letter-spacing: .2px; }
   .logo span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .back {
@@ -389,6 +395,14 @@
     background: var(--grad); border-color: transparent; color: #fff;
     box-shadow: 0 4px 14px rgba(124,92,240,.4);
   }
+  .genre-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 2px 0 8px; }
+  .genre-grid button {
+    min-height: 44px; padding: 8px 12px; text-align: left; color: var(--txt); font-size: 13px; font-weight: 650;
+    background: var(--btn); border: 1px solid var(--line); border-radius: 12px;
+    transition: transform 120ms var(--ease-out), border-color 120ms, background 120ms;
+  }
+  .genre-grid button:hover { border-color: var(--acc); }
+  .genre-grid button:active { transform: scale(.97); background: var(--acc-soft); }
   /* раскрывающаяся панель фильтров поиска: сетка чипов выбранной группы */
   .fpanel {
     display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 10px;
@@ -461,16 +475,16 @@
   }
 
   .navbar {
-    position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 10;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     background: rgba(20,19,26,.82);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow);
-    padding-bottom: 0;
+    border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.32);
+    padding: 0 max(8px, var(--safe-right)) var(--safe-bottom) max(8px, var(--safe-left));
   }
-  .navbar .in { max-width: 720px; margin: 0 auto; display: flex; }
+  .navbar .in { max-width: 720px; min-height: var(--nav-height); margin: 0 auto; display: flex; }
   .navbar button {
     flex: 1; background: none; border: 0; color: var(--muted);
-    font-size: 11px; font-weight: 600; padding: 8px 0 6px;
+    min-height: var(--nav-height); font-size: 11px; font-weight: 600; padding: 8px 0 7px;
     display: flex; flex-direction: column; gap: 3px; align-items: center;
   }
   .navbar button svg { width: 21px; height: 21px; }
@@ -483,7 +497,7 @@
   #view-title { position: relative; }
   #view-title .topbar, #view-title .title-head { position: relative; }
   .toast {
-    position: fixed; left: 12px; right: 12px; bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    position: fixed; left: max(12px, var(--safe-left)); right: max(12px, var(--safe-right)); bottom: calc(var(--nav-height) + var(--safe-bottom) + 10px);
     z-index: 50; background: #2a1f1f; color: #ffd9d9; border: 1px solid rgba(255,120,120,.35);
     border-radius: 12px; padding: 10px 12px; font-size: 12.5px;
     opacity: 0; transform: translateY(8px); pointer-events: none;
@@ -584,6 +598,13 @@
     <div class="warn" id="searchHint">Введи название или выбери жанр/год — ищет по каталогу Anilibria.</div>
   </div>
 
+  <!-- ВСЕ ЖАНРЫ -->
+  <div class="view hidden" id="view-genres">
+    <div class="topbar"><div class="logo">Жанры аниме</div></div>
+    <div class="row">Выбери жанр — откроется каталог с подходящими аниме.</div>
+    <div class="genre-grid" id="genresGrid"><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div></div>
+  </div>
+
   <!-- ТАЙТЛ -->
   <div class="view hidden" id="view-title">
     <div id="t-back"></div>
@@ -660,13 +681,16 @@
 <nav class="navbar"><div class="in">
   <button data-nav="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Главная</button>
   <button data-nav="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Поиск</button>
+  <button data-nav="genres"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="7" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="17" cy="17.5" r="1" fill="currentColor"/></svg>Жанры</button>
   <button data-nav="favs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.7l-6.1 3.4 1.4-6.8-5.1-4.7 6.9-.8z"/></svg>Моё</button>
 </div></nav>
 
 <script>
   const API = "https://anilibria.top/api/v1";
   const SHIKI = "https://shikimori.one/api";
-  const PAGE = 24, GRID_N = 12, LIST_N = 18;
+  // Больше выбора на первом экране, но без тяжёлой бесконечной загрузки:
+  // дальнейшие страницы по-прежнему идут только по кнопке «Показать ещё».
+  const PAGE = 24, GRID_N = 18, LIST_N = 24;
   const q0 = new URLSearchParams(location.search);
 
   const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
@@ -680,12 +704,31 @@
       if (th.button_color) root.setProperty("--acc", th.button_color);
     } catch (e) {}
   }
+  // В Telegram safe-area включает не только вырез телефона, но и его собственную
+  // верхнюю область. Берём максимум с CSS env(), поэтому обычный браузер/PWA
+  // продолжают работать без Telegram API.
+  function applyTelegramSafeArea() {
+    try {
+      if (!tg) return;
+      const device = tg.safeAreaInset || {};
+      const content = tg.contentSafeAreaInset || {};
+      const root = document.documentElement.style;
+      const px = (v) => Math.max(0, Number(v) || 0) + "px";
+      root.setProperty("--tg-safe-top", px(content.top != null ? content.top : device.top));
+      root.setProperty("--tg-safe-bottom", px(Math.max(Number(device.bottom) || 0, Number(content.bottom) || 0)));
+      root.setProperty("--tg-safe-left", px(Math.max(Number(device.left) || 0, Number(content.left) || 0)));
+      root.setProperty("--tg-safe-right", px(Math.max(Number(device.right) || 0, Number(content.right) || 0)));
+    } catch (e) {}
+  }
   if (tg) {
     try { tg.ready(); } catch (e) {}   // сообщаем Telegram, что WebApp загрузился
     try { tg.expand(); } catch (e) {}
     applyTheme();
+    applyTelegramSafeArea();
     // пользователь меняет тему Telegram — сразу перекрашиваемся
     try { tg.onEvent("themeChanged", applyTheme); } catch (e) {}
+    try { tg.onEvent("safeAreaChanged", applyTelegramSafeArea); } catch (e) {}
+    try { tg.onEvent("contentSafeAreaChanged", applyTelegramSafeArea); } catch (e) {}
   }
   // внешние ссылки: в WebView window.open часто режется, поэтому в Telegram идём через openLink
   function openExternal(url) {
@@ -713,7 +756,7 @@
   }
 
   // --- навигация ---
-  const views = { home: $("view-home"), list: $("view-list"), sched: $("view-sched"), search: $("view-search"), title: $("view-title"), favs: $("view-favs") };  let lastList = "home";
+  const views = { home: $("view-home"), list: $("view-list"), sched: $("view-sched"), search: $("view-search"), genres: $("view-genres"), title: $("view-title"), favs: $("view-favs") };  let lastList = "home";
   // Позиция прокрутки запоминается для каждого экрана: вернувшись из тайтла,
   // пользователь остаётся там же в списке, а не в самом верху.
   const scrollMem = Object.create(null);
@@ -762,6 +805,7 @@
     requestAnimationFrame(() => window.scrollTo(0, to));
     curView = name;
     if (name === "favs") renderFavs();
+    if (name === "genres") renderGenres();
     if (name === "home") renderContinue(false);
   }
   window.addEventListener("popstate", (e) => {
@@ -1009,7 +1053,7 @@
     const nt = $("newTitle");
     if (nt) nt.textContent = "Новинки " + YEAR_NOW;
     const settled = await Promise.allSettled([
-      cj(`${API}/anime/releases/latest?limit=8`, 180000).then(j => j.data || j),
+      cj(`${API}/anime/releases/latest?limit=12`, 180000).then(j => j.data || j),
       cj(HOME_URL.new(1), 180000).then(j => j.data || []),
       cj(HOME_URL.ongoing(1), 180000).then(j => j.data || []),
       cj(HOME_URL.top(1), 180000).then(j => j.data || []),
@@ -1022,7 +1066,7 @@
     }
     const hero = $("hero"); hero.innerHTML = "";
     const frag = document.createDocumentFragment();
-    latest.slice(0, 8).forEach(r => frag.appendChild(cardEl(r, true)));
+    latest.slice(0, 12).forEach(r => frag.appendChild(cardEl(r, true)));
     hero.appendChild(frag);
     // hero-баннер: топ-1 из новинок недели
     try {
@@ -1200,20 +1244,56 @@
     }
   }
 
-  // --- жанры на главной + «Мне повезет» ---
-  async function loadGenres() {
+  // --- жанры на главной и полный каталог жанров ---
+  let allGenres = null;
+  async function getAllGenres() {
+    if (allGenres) return allGenres;
+    const j = await cj(`${API}/anime/genres`, 3600000);
+    allGenres = (j.data || j || []).filter(g => g && g.name).sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    searchGenres = allGenres;
+    return allGenres;
+  }
+  function openGenre(g) {
+    if (!g || !g.id) return;
+    openListCustom("Жанр: " + g.name,
+      (p) => `${API}/anime/catalog/releases?f[genres]=${g.id}&f[sorting]=RATING_DESC&page=${p}&limit=${LIST_N}`);
+  }
+  async function renderGenres() {
+    const grid = $("genresGrid");
+    grid.innerHTML = '<div class="skel" style="height:44px"></div>'.repeat(12);
     try {
-      const j = await cj(`${API}/anime/genres`, 3600000);
-      const items = (j.data || j || []).filter(g => g && g.name).slice(0, 16);
-      if (!items.length) return;
-      const row = $("gchips");
+      const items = await getAllGenres();
+      grid.innerHTML = "";
+      if (!items.length) { grid.innerHTML = '<div class="warn">Жанры пока не загрузились. Проверь интернет и попробуй ещё раз.</div>'; return; }
+      const frag = document.createDocumentFragment();
       items.forEach(g => {
         const b = document.createElement("button");
         b.textContent = g.name;
-        b.onclick = () => openListCustom("Жанр: " + g.name,
-          (p) => `${API}/anime/catalog/releases?f[genres]=${g.id}&f[sorting]=RATING_DESC&page=${p}&limit=${LIST_N}`);
+        b.onclick = () => openGenre(g);
+        frag.appendChild(b);
+      });
+      grid.appendChild(frag);
+    } catch (e) {
+      grid.innerHTML = '<div class="warn">Не удалось загрузить жанры. Попробуй открыть экран ещё раз.</div>';
+    }
+  }
+  async function loadGenres() {
+    try {
+      const items = (await getAllGenres()).slice(0, 16);
+      if (!items.length) return;
+      const row = $("gchips");
+      row.innerHTML = "";
+      items.forEach(g => {
+        const b = document.createElement("button");
+        b.textContent = g.name;
+        b.onclick = () => openGenre(g);
         row.appendChild(b);
       });
+      const all = document.createElement("button");
+      all.textContent = "Все жанры";
+      all.className = "active";
+      all.onclick = () => nav("genres");
+      row.appendChild(all);
       row.classList.remove("hidden");
     } catch (e) {}
   }
@@ -1236,7 +1316,7 @@
   //  • жанр + год/тип, текст + год/тип комбинируются нормально.
   const searchQ = { text: "", genre: null, year: null, type: null, ongoing: false };
   const searchRes = { page: 0, busy: false, done: false };
-  const SEARCH_PAGE = 18;
+  const SEARCH_PAGE = 24;
   let searchPanel = null;          // открытая группа фильтров ("genre"|"year"|"type"|null)
   let searchGenres = null;         // кэш списка жанров
   const TYPE_OPTS = [
